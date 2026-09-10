@@ -329,13 +329,13 @@
                             <span id="active-players-count">0 PLAYERS ACTIVE</span>
                         </div>
                     </div>
-                    <p class="text-zinc-400 mt-1">Orlando Metro • Turning park &amp; street games into professional matchups</p>
+                    <p class="text-zinc-400 mt-1">Nationwide ballers • Florida &amp; Texas parks pinned</p>
                 </div>
                 
                 <div class="hidden lg:flex items-center gap-x-2 text-sm">
                     <div class="bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-3xl flex items-center gap-x-2 text-xs">
                         <i class="fa-solid fa-location-dot text-[#FF10F0]" style="text-shadow: 0 0 8px rgba(255,16,240,0.5);"></i>
-                        <span class="font-medium">Downtown Orlando</span>
+                        <span class="font-medium" id="map-region-label">Your location</span>
                     </div>
                     <div onclick="useMyLocation()" class="cursor-pointer bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-[#39FF14]/40 px-4 py-2 rounded-3xl flex items-center gap-x-2 text-xs transition-colors">
                         <i class="fa-solid fa-crosshairs text-[#39FF14]"></i>
@@ -353,12 +353,17 @@
                     <div class="bg-zinc-900/90 backdrop-blur-xl border border-zinc-700 rounded-3xl px-4 py-3 text-sm flex items-center gap-x-3" style="box-shadow: 0 0 16px rgba(57,255,20,0.12);">
                         <div>
                             <div class="font-semibold text-[#39FF14]" id="courts-hot-count" style="text-shadow: 0 0 8px rgba(57,255,20,0.45);">No courts hot</div>
-                            <div class="text-xs text-zinc-400">right now in Orlando</div>
+                            <div class="text-xs text-zinc-400" id="courts-region-sub">FL &amp; TX parks • players nationwide</div>
                         </div>
                     </div>
                 </div>
                 
-                <div class="absolute top-4 right-4 z-[1000]">
+                <div class="absolute top-4 right-4 z-[1000] flex flex-col items-end gap-2">
+                    <div class="flex items-center gap-x-1 bg-zinc-900/90 backdrop-blur-xl border border-zinc-700 rounded-3xl p-1 text-xs">
+                        <button type="button" onclick="focusCourtRegion('ALL')" id="region-btn-ALL" class="px-3 py-1.5 rounded-2xl font-semibold bg-[#39FF14] text-zinc-950">Both</button>
+                        <button type="button" onclick="focusCourtRegion('FL')" id="region-btn-FL" class="px-3 py-1.5 rounded-2xl font-semibold text-zinc-400 hover:text-white">Florida</button>
+                        <button type="button" onclick="focusCourtRegion('TX')" id="region-btn-TX" class="px-3 py-1.5 rounded-2xl font-semibold text-zinc-400 hover:text-white">Texas</button>
+                    </div>
                     <div onclick="showFilters()" class="cursor-pointer bg-zinc-900/90 backdrop-blur-xl border border-zinc-700 hover:border-[#FF10F0]/50 transition-colors px-5 py-2.5 rounded-3xl text-sm flex items-center gap-x-2">
                         <i class="fa-solid fa-filter text-[#FF10F0]"></i>
                         <span class="font-medium">Filters</span>
@@ -393,7 +398,7 @@
         <div class="flex items-end justify-between mb-8">
             <div>
                 <h2 class="text-4xl font-bold tracking-tighter">Player Profiles</h2>
-                <p class="text-zinc-400">Signed-up ballers only — real accounts in Orlando</p>
+                <p class="text-zinc-400">Signed-up ballers from every state — parks listed in Florida &amp; Texas</p>
             </div>
             <div class="flex items-center gap-x-3">
                 <div class="relative">
@@ -493,7 +498,7 @@
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="font-semibold text-xl flex items-center gap-x-2">
                         <i class="fa-solid fa-trophy text-[#39FF14]" style="text-shadow: 0 0 10px rgba(57,255,20,0.5);"></i> 
-                        <span>Orlando Top Players</span>
+                        <span>Nationwide Top Players</span>
                     </h3>
                     <div class="text-xs text-zinc-400">Updated live</div>
                 </div>
@@ -804,9 +809,10 @@
             if (activeLabel) activeLabel.textContent = n + (n === 1 ? ' PLAYER ACTIVE' : ' PLAYERS ACTIVE');
             const courtsLabel = document.getElementById('courts-hot-count');
             if (courtsLabel) {
-                if (typeof ORLANDO_COURTS !== 'undefined' && ORLANDO_COURTS.length) {
-                    const hotCount = ORLANDO_COURTS.filter(c => nearbyActiveAtCourt(c, 2.5) > 0).length;
-                    courtsLabel.textContent = hotCount > 0 ? hotCount + ' courts hot' : ORLANDO_COURTS.length + ' courts mapped';
+                if (typeof ALL_COURTS !== 'undefined' && ALL_COURTS.length) {
+                    const list = (typeof visibleCourts === 'function') ? visibleCourts() : ALL_COURTS;
+                    const hotCount = list.filter(c => nearbyActiveAtCourt(c, 2.5) > 0).length;
+                    courtsLabel.textContent = hotCount > 0 ? hotCount + ' courts hot' : list.length + ' courts mapped';
                 } else {
                     courtsLabel.textContent = n > 0 ? Math.min(n, 12) + ' courts hot' : 'No courts hot';
                 }
@@ -827,7 +833,7 @@
                 map = L.map('map', {
                     zoomControl: false,
                     attributionControl: false
-                }).setView([28.5383, -81.3792], 12.5);
+                }).setView([39.8, -98.6], 4.2);
 
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     className: 'map-tiles',
@@ -883,55 +889,159 @@
             });
         }
 
-        // Orlando metro public parks / rec centers with basketball courts
-        const ORLANDO_COURTS = [
-            { name: "Cypress Grove Park", lat: 28.5123, lng: -81.3689, area: "South Orlando", courts: 2 },
-            { name: "Fort Gatlin Recreation Complex", lat: 28.5168, lng: -81.3512, area: "Conway", courts: 2 },
-            { name: "McQueen Park", lat: 28.5712, lng: -81.3923, area: "College Park", courts: 1 },
-            { name: "Lake Eola Park Courts", lat: 28.5437, lng: -81.3736, area: "Downtown", courts: 1 },
-            { name: "Lake Lorna Doone Park", lat: 28.5418, lng: -81.4008, area: "West Downtown", courts: 2 },
-            { name: "Blue Jacket Park", lat: 28.5645, lng: -81.3268, area: "Baldwin Park", courts: 2 },
-            { name: "Mayor Carl T. Langford Park", lat: 28.5405, lng: -81.3612, area: "Lawsona", courts: 1 },
-            { name: "Rock Lake Park", lat: 28.5488, lng: -81.4086, area: "Colonialtown", courts: 1 },
-            { name: "Barnett Park", lat: 28.5521, lng: -81.4452, area: "Pine Hills", courts: 2 },
-            { name: "Northwest Community Center", lat: 28.5613, lng: -81.4268, area: "Northwest", courts: 2 },
-            { name: "Rosemont Community Center", lat: 28.6019, lng: -81.4401, area: "Rosemont", courts: 2 },
-            { name: "Willie Mays Park", lat: 28.5356, lng: -81.4521, area: "Washington Shores", courts: 2 },
-            { name: "Callahan / Griffin Park", lat: 28.5442, lng: -81.3895, area: "Parramore", courts: 1 },
-            { name: "Mathews Park", lat: 28.5621, lng: -81.3854, area: "College Park", courts: 1 },
-            { name: "Arcadia Acres Park", lat: 28.5589, lng: -81.2987, area: "East Orlando", courts: 1 },
-            { name: "Blanchard Park", lat: 28.5678, lng: -81.2456, area: "East Orlando", courts: 2 },
-            { name: "Downey Park", lat: 28.5523, lng: -81.2612, area: "Azalea Park", courts: 2 },
-            { name: "East Orange Neighborhood Park", lat: 28.5632, lng: -81.2012, area: "East Orange", courts: 2 },
-            { name: "Waterford Lakes Recreation", lat: 28.5489, lng: -81.1987, area: "Waterford Lakes", courts: 2 },
-            { name: "UCF Recreation Outdoor Courts", lat: 28.6024, lng: -81.2001, area: "UCF", courts: 4 },
-            { name: "Lake Lawne Park", lat: 28.5587, lng: -81.4123, area: "Pine Hills", courts: 1 },
-            { name: "Shadowbay Park", lat: 28.5212, lng: -81.3789, area: "Conway", courts: 1 },
-            { name: "Barber Park", lat: 28.5089, lng: -81.3421, area: "South Orlando", courts: 2 },
-            { name: "Orlo Vista / Powers Park", lat: 28.5398, lng: -81.4687, area: "Orlo Vista", courts: 1 },
-            { name: "MetroWest Boulevard Courts", lat: 28.5215, lng: -81.4921, area: "MetroWest", courts: 1 },
-            { name: "Poppy Park", lat: 28.5289, lng: -81.4612, area: "Florida Center", courts: 1 },
-            { name: "Signal Hill Park", lat: 28.5789, lng: -81.4312, area: "Pine Hills", courts: 1 },
-            { name: "Vogt-Meloon Park", lat: 28.5121, lng: -81.4012, area: "South Orlando", courts: 2 },
-            { name: "Bear Creek Recreation Complex", lat: 28.4489, lng: -81.3521, area: "South Orange", courts: 2 },
-            { name: "Dr. Phillips Ballfield Complex", lat: 28.4789, lng: -81.4921, area: "Dr. Phillips", courts: 1 },
-            { name: "Meadow Woods Outdoor Courts", lat: 28.4012, lng: -81.3621, area: "Meadow Woods", courts: 2 },
-            { name: "Northlake Park Community", lat: 28.4215, lng: -81.2987, area: "Lake Nona", courts: 2 },
-            { name: "East Lake Courts", lat: 28.4123, lng: -81.2456, area: "Lake Nona", courts: 2 },
-            { name: "Goldenrod Recreation Center", lat: 28.5689, lng: -81.2789, area: "Winter Park / Goldenrod", courts: 2 },
-            { name: "Winter Park Cady Way Courts", lat: 28.5921, lng: -81.3212, area: "Winter Park", courts: 1 },
-            { name: "Maitland Community Park", lat: 28.6278, lng: -81.3632, area: "Maitland", courts: 2 },
-            { name: "Sanlando Park", lat: 28.6512, lng: -81.4123, area: "Altamonte Springs", courts: 2 },
-            { name: "Westmonte Park", lat: 28.6489, lng: -81.4312, area: "Altamonte Springs", courts: 1 },
-            { name: "Ocoee Tiger Minor Park", lat: 28.5698, lng: -81.5432, area: "Ocoee", courts: 1 },
-            { name: "Ocoee Prairie Lake Park", lat: 28.5789, lng: -81.5212, area: "Ocoee", courts: 1 },
-            { name: "Winter Garden Downtown Park", lat: 28.5654, lng: -81.5865, area: "Winter Garden", courts: 1 },
-            { name: "Kissimmee Lakefront Park Courts", lat: 28.2912, lng: -81.4078, area: "Kissimmee", courts: 2 },
-            { name: "Osceola Heritage Park Area Courts", lat: 28.3121, lng: -81.3789, area: "Kissimmee", courts: 2 },
-            { name: "Apopka Northwest Rec", lat: 28.6789, lng: -81.5123, area: "Apopka", courts: 2 },
-            { name: "Oviedo Recreation Complex", lat: 28.6701, lng: -81.2087, area: "Oviedo", courts: 2 },
-            { name: "Casselberry Secret Lake Park", lat: 28.6612, lng: -81.3215, area: "Casselberry", courts: 1 }
+        // Florida + Texas public parks / rec centers with outdoor basketball courts
+        let courtRegion = 'ALL'; // ALL | FL | TX
+        const ALL_COURTS = [
+            // —— Florida (Orlando metro kept, then statewide parks & rec) ——
+            { name: "Cypress Grove Park", lat: 28.5123, lng: -81.3689, area: "Orlando", state: "FL", courts: 2 },
+            { name: "Fort Gatlin Recreation Complex", lat: 28.5168, lng: -81.3512, area: "Orlando / Conway", state: "FL", courts: 2 },
+            { name: "McQueen Park", lat: 28.5712, lng: -81.3923, area: "College Park", state: "FL", courts: 1 },
+            { name: "Lake Eola Park Courts", lat: 28.5437, lng: -81.3736, area: "Downtown Orlando", state: "FL", courts: 1 },
+            { name: "Lake Lorna Doone Park", lat: 28.5418, lng: -81.4008, area: "West Downtown Orlando", state: "FL", courts: 2 },
+            { name: "Blue Jacket Park", lat: 28.5645, lng: -81.3268, area: "Baldwin Park", state: "FL", courts: 2 },
+            { name: "Mayor Carl T. Langford Park", lat: 28.5405, lng: -81.3612, area: "Lawsona", state: "FL", courts: 1 },
+            { name: "Rock Lake Park", lat: 28.5488, lng: -81.4086, area: "Colonialtown", state: "FL", courts: 1 },
+            { name: "Barnett Park", lat: 28.5521, lng: -81.4452, area: "Pine Hills", state: "FL", courts: 2 },
+            { name: "Northwest Community Center", lat: 28.5613, lng: -81.4268, area: "Northwest Orlando", state: "FL", courts: 2 },
+            { name: "Rosemont Community Center", lat: 28.6019, lng: -81.4401, area: "Rosemont", state: "FL", courts: 2 },
+            { name: "Willie Mays Park", lat: 28.5356, lng: -81.4521, area: "Washington Shores", state: "FL", courts: 2 },
+            { name: "Callahan / Griffin Park", lat: 28.5442, lng: -81.3895, area: "Parramore", state: "FL", courts: 1 },
+            { name: "Mathews Park", lat: 28.5621, lng: -81.3854, area: "College Park", state: "FL", courts: 1 },
+            { name: "Arcadia Acres Park", lat: 28.5589, lng: -81.2987, area: "East Orlando", state: "FL", courts: 1 },
+            { name: "Blanchard Park", lat: 28.5678, lng: -81.2456, area: "East Orlando", state: "FL", courts: 2 },
+            { name: "Downey Park", lat: 28.5523, lng: -81.2612, area: "Azalea Park", state: "FL", courts: 2 },
+            { name: "East Orange Neighborhood Park", lat: 28.5632, lng: -81.2012, area: "East Orange", state: "FL", courts: 2 },
+            { name: "Waterford Lakes Recreation", lat: 28.5489, lng: -81.1987, area: "Waterford Lakes", state: "FL", courts: 2 },
+            { name: "UCF Recreation Outdoor Courts", lat: 28.6024, lng: -81.2001, area: "UCF", state: "FL", courts: 4 },
+            { name: "Lake Lawne Park", lat: 28.5587, lng: -81.4123, area: "Pine Hills", state: "FL", courts: 1 },
+            { name: "Shadowbay Park", lat: 28.5212, lng: -81.3789, area: "Conway", state: "FL", courts: 1 },
+            { name: "Barber Park", lat: 28.5089, lng: -81.3421, area: "South Orlando", state: "FL", courts: 2 },
+            { name: "Poppy Park", lat: 28.5289, lng: -81.4612, area: "Florida Center", state: "FL", courts: 1 },
+            { name: "Signal Hill Park", lat: 28.5789, lng: -81.4312, area: "Pine Hills", state: "FL", courts: 1 },
+            { name: "Vogt-Meloon Park", lat: 28.5121, lng: -81.4012, area: "South Orlando", state: "FL", courts: 2 },
+            { name: "Bear Creek Recreation Complex", lat: 28.4489, lng: -81.3521, area: "South Orange", state: "FL", courts: 2 },
+            { name: "Dr. Phillips Ballfield Complex", lat: 28.4789, lng: -81.4921, area: "Dr. Phillips", state: "FL", courts: 1 },
+            { name: "Meadow Woods Outdoor Courts", lat: 28.4012, lng: -81.3621, area: "Meadow Woods", state: "FL", courts: 2 },
+            { name: "Northlake Park Community", lat: 28.4215, lng: -81.2987, area: "Lake Nona", state: "FL", courts: 2 },
+            { name: "East Lake Courts", lat: 28.4123, lng: -81.2456, area: "Lake Nona", state: "FL", courts: 2 },
+            { name: "Goldenrod Recreation Center", lat: 28.5689, lng: -81.2789, area: "Winter Park / Goldenrod", state: "FL", courts: 2 },
+            { name: "Winter Park Cady Way Courts", lat: 28.5921, lng: -81.3212, area: "Winter Park", state: "FL", courts: 1 },
+            { name: "Maitland Community Park", lat: 28.6278, lng: -81.3632, area: "Maitland", state: "FL", courts: 2 },
+            { name: "Sanlando Park", lat: 28.6512, lng: -81.4123, area: "Altamonte Springs", state: "FL", courts: 2 },
+            { name: "Westmonte Park", lat: 28.6489, lng: -81.4312, area: "Altamonte Springs", state: "FL", courts: 1 },
+            { name: "Ocoee Tiger Minor Park", lat: 28.5698, lng: -81.5432, area: "Ocoee", state: "FL", courts: 1 },
+            { name: "Ocoee Prairie Lake Park", lat: 28.5789, lng: -81.5212, area: "Ocoee", state: "FL", courts: 1 },
+            { name: "Winter Garden Downtown Park", lat: 28.5654, lng: -81.5865, area: "Winter Garden", state: "FL", courts: 1 },
+            { name: "Kissimmee Lakefront Park Courts", lat: 28.2912, lng: -81.4078, area: "Kissimmee", state: "FL", courts: 2 },
+            { name: "Osceola Heritage Park Area Courts", lat: 28.3121, lng: -81.3789, area: "Kissimmee", state: "FL", courts: 2 },
+            { name: "Apopka Northwest Rec", lat: 28.6789, lng: -81.5123, area: "Apopka", state: "FL", courts: 2 },
+            { name: "Oviedo Recreation Complex", lat: 28.6701, lng: -81.2087, area: "Oviedo", state: "FL", courts: 2 },
+            { name: "Casselberry Secret Lake Park", lat: 28.6612, lng: -81.3215, area: "Casselberry", state: "FL", courts: 1 },
+            { name: "Flamingo Park", lat: 25.7886, lng: -80.1374, area: "Miami Beach", state: "FL", courts: 4 },
+            { name: "José Martí Park", lat: 25.7728, lng: -80.2194, area: "Little Havana", state: "FL", courts: 2 },
+            { name: "Tropical Park", lat: 25.7214, lng: -80.3187, area: "West Miami-Dade", state: "FL", courts: 6 },
+            { name: "A.D. Barnes Park", lat: 25.7372, lng: -80.3071, area: "Kendall / Glenvar Heights", state: "FL", courts: 2 },
+            { name: "Kennedy Park at the Bay", lat: 25.7274, lng: -80.2382, area: "Coconut Grove", state: "FL", courts: 2 },
+            { name: "Curtis Park", lat: 25.7871, lng: -80.2146, area: "Allapattah", state: "FL", courts: 2 },
+            { name: "Holiday Park", lat: 26.1324, lng: -80.1441, area: "Fort Lauderdale", state: "FL", courts: 4 },
+            { name: "Mills Pond Park", lat: 26.1689, lng: -80.1512, area: "Fort Lauderdale", state: "FL", courts: 2 },
+            { name: "CB Smith Park", lat: 26.0489, lng: -80.3612, area: "Pembroke Pines", state: "FL", courts: 4 },
+            { name: "Okeeheelee Park", lat: 26.6482, lng: -80.1684, area: "West Palm Beach", state: "FL", courts: 4 },
+            { name: "Howard Park", lat: 26.7123, lng: -80.0689, area: "West Palm Beach", state: "FL", courts: 2 },
+            { name: "Al Lopez Park", lat: 27.9884, lng: -82.5031, area: "Tampa", state: "FL", courts: 4 },
+            { name: "Gadsden Park Recreation Center", lat: 27.8789, lng: -82.5123, area: "South Tampa", state: "FL", courts: 2 },
+            { name: "Williams Park", lat: 27.7734, lng: -82.6401, area: "St. Petersburg", state: "FL", courts: 2 },
+            { name: "Campbell Park", lat: 27.7601, lng: -82.6502, area: "St. Petersburg", state: "FL", courts: 2 },
+            { name: "Walter Fuller Park", lat: 27.8212, lng: -82.6812, area: "St. Petersburg", state: "FL", courts: 2 },
+            { name: "Metropolitan Park", lat: 30.3204, lng: -81.6402, area: "Jacksonville", state: "FL", courts: 2 },
+            { name: "Boone Park", lat: 30.2891, lng: -81.7012, area: "Jacksonville / Riverside", state: "FL", courts: 2 },
+            { name: "Ed Austin Regional Park", lat: 30.3521, lng: -81.5212, area: "Jacksonville", state: "FL", courts: 4 },
+            { name: "Tom Brown Park", lat: 30.4521, lng: -84.2394, area: "Tallahassee", state: "FL", courts: 4 },
+            { name: "Myers Park", lat: 30.4289, lng: -84.2812, area: "Tallahassee", state: "FL", courts: 2 },
+            { name: "Westside Park", lat: 29.6598, lng: -82.3891, area: "Gainesville", state: "FL", courts: 2 },
+            { name: "Albert R. Clearman / Northeast Park", lat: 29.6712, lng: -82.3123, area: "Gainesville", state: "FL", courts: 2 },
+            { name: "Bayview Park", lat: 30.4212, lng: -87.2012, area: "Pensacola", state: "FL", courts: 2 },
+            { name: "Admiral Mason Park", lat: 30.4112, lng: -87.2215, area: "Pensacola", state: "FL", courts: 2 },
+            { name: "City Island Park", lat: 29.2289, lng: -81.0112, area: "Daytona Beach", state: "FL", courts: 2 },
+            { name: "Payne Park", lat: 27.3345, lng: -82.5312, area: "Sarasota", state: "FL", courts: 2 },
+            { name: "Centennial Park", lat: 26.6465, lng: -81.8712, area: "Fort Myers", state: "FL", courts: 2 },
+            { name: "Fleischmann Park", lat: 26.1489, lng: -81.7912, area: "Naples", state: "FL", courts: 2 },
+            { name: "Lake Mirror Complex", lat: 28.0412, lng: -81.9498, area: "Lakeland", state: "FL", courts: 2 },
+            { name: "Coachman Park", lat: 27.9756, lng: -82.8001, area: "Clearwater", state: "FL", courts: 2 },
+            { name: "Boca Raton Patch Reef Park", lat: 26.3856, lng: -80.1312, area: "Boca Raton", state: "FL", courts: 4 },
+            { name: "Delray Beach Pompey Park", lat: 26.4689, lng: -80.0789, area: "Delray Beach", state: "FL", courts: 2 },
+
+            // —— Texas parks & rec ——
+            { name: "Hermann Park", lat: 29.7174, lng: -95.3902, area: "Houston", state: "TX", courts: 4 },
+            { name: "Emancipation Park", lat: 29.7364, lng: -95.3651, area: "Houston Third Ward", state: "TX", courts: 4 },
+            { name: "Memorial Park", lat: 29.7651, lng: -95.4412, area: "Houston", state: "TX", courts: 4 },
+            { name: "MacGregor Park", lat: 29.7102, lng: -95.3412, area: "Houston", state: "TX", courts: 4 },
+            { name: "Moody Park", lat: 29.7989, lng: -95.3689, area: "Houston Near Northside", state: "TX", courts: 2 },
+            { name: "Reverchon Park", lat: 32.8004, lng: -96.8271, area: "Dallas Oak Lawn", state: "TX", courts: 4 },
+            { name: "Samuell-Grand Park", lat: 32.7934, lng: -96.7489, area: "East Dallas", state: "TX", courts: 4 },
+            { name: "Kiest Park", lat: 32.7123, lng: -96.8512, area: "Oak Cliff", state: "TX", courts: 4 },
+            { name: "Exall Park", lat: 32.8012, lng: -96.7812, area: "East Dallas", state: "TX", courts: 2 },
+            { name: "Pike Park", lat: 32.7912, lng: -96.8112, area: "Dallas Little Mexico", state: "TX", courts: 2 },
+            { name: "Butler Shores / Auditorium Shores", lat: 30.2631, lng: -97.7514, area: "Austin", state: "TX", courts: 2 },
+            { name: "Bartholomew District Park", lat: 30.2921, lng: -97.6912, area: "Austin", state: "TX", courts: 4 },
+            { name: "Little Stacy Park", lat: 30.2478, lng: -97.7412, area: "Austin Travis Heights", state: "TX", courts: 2 },
+            { name: "Walnut Creek Metro Park", lat: 30.4012, lng: -97.6712, area: "North Austin", state: "TX", courts: 4 },
+            { name: "Woodlawn Lake Park", lat: 29.4472, lng: -98.5281, area: "San Antonio", state: "TX", courts: 4 },
+            { name: "Brackenridge Park", lat: 29.4562, lng: -98.4734, area: "San Antonio", state: "TX", courts: 2 },
+            { name: "McAllister Park", lat: 29.5412, lng: -98.4512, area: "San Antonio", state: "TX", courts: 2 },
+            { name: "Lady Bird Johnson Park", lat: 29.3612, lng: -98.5612, area: "San Antonio", state: "TX", courts: 2 },
+            { name: "Trinity Park", lat: 32.7571, lng: -97.3614, area: "Fort Worth", state: "TX", courts: 2 },
+            { name: "Sycamore Park", lat: 32.7212, lng: -97.3012, area: "Fort Worth", state: "TX", courts: 2 },
+            { name: "Harmon Field Park", lat: 32.7489, lng: -97.3412, area: "Fort Worth", state: "TX", courts: 2 },
+            { name: "Ascarate Park", lat: 31.7512, lng: -106.4031, area: "El Paso", state: "TX", courts: 4 },
+            { name: "Memorial Park El Paso", lat: 31.7891, lng: -106.4412, area: "El Paso", state: "TX", courts: 2 },
+            { name: "Veterans Park Arlington", lat: 32.7012, lng: -97.1212, area: "Arlington", state: "TX", courts: 4 },
+            { name: "Bob Woodruff Park", lat: 33.0412, lng: -96.7012, area: "Plano", state: "TX", courts: 2 },
+            { name: "Frisco Commons Park", lat: 33.1289, lng: -96.8212, area: "Frisco", state: "TX", courts: 2 },
+            { name: "B. F. Phillips Park", lat: 33.1989, lng: -96.7312, area: "McKinney", state: "TX", courts: 2 },
+            { name: "Cole Park", lat: 27.7689, lng: -97.3912, area: "Corpus Christi", state: "TX", courts: 2 },
+            { name: "Mae Simmons Park", lat: 33.5612, lng: -101.8312, area: "Lubbock", state: "TX", courts: 2 },
+            { name: "Thompson Park", lat: 35.2412, lng: -101.8312, area: "Amarillo", state: "TX", courts: 2 },
+            { name: "Casa Blanca Lake Park", lat: 27.5412, lng: -99.4512, area: "Laredo", state: "TX", courts: 2 },
+            { name: "Dean Porter Park", lat: 25.9112, lng: -97.4912, area: "Brownsville", state: "TX", courts: 2 }
         ];
+        const ORLANDO_COURTS = ALL_COURTS; // backward-compatible alias
+
+        function visibleCourts() {
+            if (courtRegion === 'FL' || courtRegion === 'TX') {
+                return ALL_COURTS.filter(c => c.state === courtRegion);
+            }
+            return ALL_COURTS;
+        }
+
+        function focusCourtRegion(region) {
+            courtRegion = region === 'FL' || region === 'TX' ? region : 'ALL';
+            ['ALL','FL','TX'].forEach(id => {
+                const btn = document.getElementById('region-btn-' + id);
+                if (!btn) return;
+                const on = id === courtRegion;
+                btn.className = on
+                    ? 'px-3 py-1.5 rounded-2xl font-semibold bg-[#39FF14] text-zinc-950'
+                    : 'px-3 py-1.5 rounded-2xl font-semibold text-zinc-400 hover:text-white';
+            });
+            const label = document.getElementById('map-region-label');
+            const sub = document.getElementById('courts-region-sub');
+            if (courtRegion === 'FL') {
+                if (label) label.textContent = 'Florida';
+                if (sub) sub.textContent = 'Florida parks & rec';
+                if (map) map.flyTo([28.3, -82.4], 6.2, { duration: 0.9 });
+            } else if (courtRegion === 'TX') {
+                if (label) label.textContent = 'Texas';
+                if (sub) sub.textContent = 'Texas parks & rec';
+                if (map) map.flyTo([31.2, -99.2], 5.8, { duration: 0.9 });
+            } else {
+                if (label) label.textContent = 'Your location';
+                if (sub) sub.textContent = 'FL & TX parks • players nationwide';
+                useMyLocation({ silent: true });
+            }
+            addCourtMarkers();
+            updateActiveCountUI();
+        }
 
         function nearbyActiveAtCourt(court, radiusKm) {
             const R = 6371;
@@ -948,7 +1058,12 @@
         }
 
         function addCourtMarkers() {
-            ORLANDO_COURTS.forEach(court => {
+            if (!map) return;
+            if (!window._courtMarkers) window._courtMarkers = [];
+            window._courtMarkers.forEach(m => { try { map.removeLayer(m); } catch (e) {} });
+            window._courtMarkers = [];
+
+            visibleCourts().forEach(court => {
                 const nearby = nearbyActiveAtCourt(court, 2.5);
                 const hot = nearby > 0;
                 const icon = L.divIcon({
@@ -963,12 +1078,13 @@
                 });
 
                 const marker = L.marker([court.lat, court.lng], { icon }).addTo(map);
+                if (window._courtMarkers) window._courtMarkers.push(marker);
                 const safeName = court.name.replace(/'/g, "\\'");
 
                 marker.bindPopup(`
                     <div class="p-1" style="min-width:180px">
                         <div class="font-bold text-base">${court.name}</div>
-                        <div class="text-xs text-zinc-400 mt-0.5">${court.area} · ${court.courts} court${court.courts > 1 ? 's' : ''}</div>
+                        <div class="text-xs text-zinc-400 mt-0.5">${court.area}${court.state ? ' · ' + court.state : ''} · ${court.courts} court${court.courts > 1 ? 's' : ''}</div>
                         <div class="text-xs mt-1.5 ${hot ? 'text-[#39FF14]' : 'text-zinc-500'}">
                             <i class="fa-solid fa-users"></i>
                             ${nearby} active NBL baller${nearby === 1 ? '' : 's'} nearby
@@ -983,8 +1099,9 @@
 
             const courtsLabel = document.getElementById('courts-hot-count');
             if (courtsLabel) {
-                const hotCount = ORLANDO_COURTS.filter(c => nearbyActiveAtCourt(c, 2.5) > 0).length;
-                courtsLabel.textContent = hotCount > 0 ? hotCount + ' courts hot' : ORLANDO_COURTS.length + ' courts mapped';
+                const list = visibleCourts();
+                const hotCount = list.filter(c => nearbyActiveAtCourt(c, 2.5) > 0).length;
+                courtsLabel.textContent = hotCount > 0 ? hotCount + ' courts hot' : list.length + ' courts mapped';
             }
         }
 
@@ -1070,7 +1187,7 @@
 
         // Generate balanced teams with "AI"
         function generateBalancedTeams(availablePlayers = null) {
-            let pool = availablePlayers || players.filter(p => p.online || p.availability === "Now");
+            let playerPool = availablePlayers || players.filter(p => p.online || p.availability === "Now");
             pool = [...pool];
 
             // Need at least 6 active users for a real match (3v3); prefer 10 for 5v5
@@ -1101,8 +1218,8 @@
             const avgA = (sumA / teamA.length).toFixed(1);
             const avgB = (sumB / teamB.length).toFixed(1);
 
-            const suggestedCourts = ["Cypress Grove Park", "Fort Gatlin Recreation Complex", "McQueen Park", "Lake Eola Park Courts"];
-            const suggestedCourt = suggestedCourts[Math.floor(Math.random() * suggestedCourts.length)];
+            const pool = (typeof visibleCourts === 'function' ? visibleCourts() : ALL_COURTS).map(c => c.name);
+            const suggestedCourt = pool[Math.floor(Math.random() * pool.length)] || "Lake Eola Park Courts";
 
             return {
                 teamA,
@@ -1260,7 +1377,7 @@
             // Optional: Fly map to suggested court area
             setTimeout(() => {
                 if (map) {
-                    map.flyTo([28.5383, -81.3792], 13, { duration: 1.2 });
+                    map.flyTo([39.8, -98.6], 4.4, { duration: 1.2 });
                 }
             }, 800);
         }
@@ -2044,12 +2161,27 @@
             }
         }
 
-        function useMyLocation() {
+        function persistMyCoords(lat, lng) {
+            if (!auth || !auth.currentUser || !db) return;
+            db.collection('users').doc(auth.currentUser.uid).set({
+                lat: lat,
+                lng: lng,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true }).catch(function () {});
+            if (currentUser) {
+                currentUser.lat = lat;
+                currentUser.lng = lng;
+            }
+        }
+
+        function useMyLocation(opts) {
+            opts = opts || {};
+            const silent = !!opts.silent;
             if (!map) return;
 
             const fallback = () => {
-                map.flyTo([28.5383, -81.3792], 13.5, { duration: 1 });
-                showToast("Showing central Orlando (location unavailable)");
+                map.flyTo([39.8, -98.6], 4.2, { duration: silent ? 0.4 : 1 });
+                if (!silent) showToast("Location unavailable — showing the whole country so every state is visible");
             };
 
             try {
@@ -2060,7 +2192,10 @@
                 navigator.geolocation.getCurrentPosition((pos) => {
                     const userLat = pos.coords.latitude;
                     const userLng = pos.coords.longitude;
-                    map.flyTo([userLat, userLng], 15, { duration: 1.4 });
+                    map.flyTo([userLat, userLng], 12.5, { duration: silent ? 0.6 : 1.2 });
+                    persistMyCoords(userLat, userLng);
+                    const locLabel = document.getElementById('map-region-label');
+                    if (locLabel && courtRegion === 'ALL') locLabel.textContent = 'Your location';
 
                     const youIcon = L.divIcon({
                         html: `<div style="width:22px;height:22px;background:#3b82f6;border:3px solid white;border-radius:50%;box-shadow:0 0 0 4px rgba(59,130,246,0.3)"></div>`,
@@ -2142,7 +2277,7 @@
                 if (konami.join('') === 'hoops') {
                     konami = [];
                     showToast("Nice! You found the secret. Go dominate the court.");
-                    if (map) map.flyTo([28.5383, -81.3792], 11);
+                    if (map) useMyLocation({ silent: true });
                 }
             });
         }
@@ -2180,6 +2315,7 @@
                 }
 
                 initMap();
+                setTimeout(function () { useMyLocation({ silent: true }); }, 400);
                 renderProfiles();
                 renderLeaderboard();
                 initializeRecentMatches();
