@@ -13,6 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
@@ -67,6 +68,21 @@
 
         .map-container {
             box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5), 0 0 40px rgba(57, 255, 20, 0.08);
+        }
+        .nbl-map-shell {
+            height: min(78vh, 820px);
+            min-height: 420px;
+        }
+        @media (max-width: 767px) {
+            .nbl-map-shell {
+                height: calc(100dvh - 148px);
+                min-height: 520px;
+                border-radius: 1.1rem;
+            }
+            #section-map .text-4xl {
+                font-size: 1.6rem;
+                line-height: 1.15;
+            }
         }
 
         .leaflet-popup-content-wrapper {
@@ -216,6 +232,11 @@
         .neon-glow-btn:hover {
             box-shadow: 0 0 32px rgba(255, 16, 240, 0.55), 0 0 20px rgba(57, 255, 20, 0.4);
         }
+        .nbl-prof-tab.active { color:#18181b; background:#39FF14; }
+        .nbl-media-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.5rem; }
+        .nbl-media-grid img, .nbl-media-grid video { width:100%; height:120px; object-fit:cover; border-radius:.85rem; background:#09090b; }
+        .nbl-video-frame { position:relative; width:100%; padding-top:56.25%; border-radius:.85rem; overflow:hidden; background:#09090b; }
+        .nbl-video-frame iframe, .nbl-video-frame video { position:absolute; inset:0; width:100%; height:100%; border:0; }
     </style>
 </head>
 <body class="bg-zinc-950 text-white">
@@ -318,7 +339,7 @@
 
     <!-- MAP SECTION -->
     <div id="section-map" class="section active">
-        <div class="max-w-screen-2xl mx-auto px-4 pt-4">
+        <div class="max-w-screen-2xl mx-auto px-2 md:px-4 pt-2 md:pt-4">
             <!-- Map Header -->
             <div class="flex items-end justify-between mb-3 px-2">
                 <div>
@@ -345,7 +366,7 @@
             </div>
 
             <!-- MAP -->
-            <div class="relative rounded-3xl overflow-hidden border border-zinc-800 map-container shadow-2xl" style="height: 620px;">
+            <div class="relative rounded-3xl overflow-hidden border border-zinc-800 map-container shadow-2xl nbl-map-shell">
                 <div id="map" class="w-full h-full bg-zinc-900"></div>
                 
                 <!-- Map Overlays -->
@@ -371,18 +392,13 @@
                 </div>
 
                 <!-- Big AI CTA -->
-                <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000]">
-                    <button onclick="generateTeamsAndShow()"
-                            class="group neon-glow-btn flex items-center gap-x-3 bg-gradient-to-r from-[#39FF14] to-[#00c853] hover:from-[#FF10F0] hover:to-[#c026d3] active:scale-[0.985] transition-all text-zinc-950 px-8 py-4 rounded-3xl font-semibold text-lg">
-                        <div class="flex items-center gap-x-3">
-                            <i class="fa-solid fa-robot text-2xl group-active:rotate-12 transition-transform"></i>
-                            <span>AUTO-MATCH PRO TEAMS</span>
-                        </div>
-                        <div class="px-3 py-1 bg-black/20 text-xs rounded-2xl font-mono tracking-wider">RANDOM + FAIR</div>
+                <div class="absolute bottom-3 md:bottom-5 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100%-1.5rem)] max-w-sm md:max-w-none md:w-auto">
+                    <button onclick="switchTab('compete'); showToast('Pick a park and create or join a live run.');"
+                            class="group neon-glow-btn w-full md:w-auto mx-auto flex items-center justify-center gap-x-2 bg-gradient-to-r from-[#39FF14] to-[#00c853] hover:from-[#FF10F0] hover:to-[#c026d3] active:scale-[0.985] transition-all text-zinc-950 px-4 py-2 md:px-5 md:py-2.5 rounded-2xl font-semibold text-xs md:text-sm">
+                        <i class="fa-solid fa-robot text-sm md:text-base group-active:rotate-12 transition-transform"></i>
+                        <span>AUTO-MATCH</span>
+                        <span class="hidden sm:inline px-2 py-0.5 bg-black/20 text-[10px] rounded-xl font-mono tracking-wider">RANDOM + FAIR</span>
                     </button>
-                    <div class="text-center mt-2">
-                        <span class="text-xs text-zinc-400 font-medium">Skill-balanced • Position-aware • Random selection</span>
-                    </div>
                 </div>
             </div>
 
@@ -480,57 +496,72 @@
     </div>
 
     <!-- COMPETE SECTION -->
-    <div id="section-compete" class="section max-w-screen-2xl mx-auto px-8 pt-8 pb-16">
-        <div class="flex items-end justify-between mb-8">
+    <div id="section-compete" class="section max-w-screen-2xl mx-auto px-4 md:px-8 pt-6 pb-16">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
             <div>
-                <h2 class="text-4xl font-bold tracking-tighter">NBL Competition</h2>
-                <p class="text-zinc-400">Official leaderboards • Verified matches • Real rankings</p>
+                <h2 class="text-4xl font-bold tracking-tighter">Live Matching</h2>
+                <p class="text-zinc-400">Real signed-in players • Real parks • Auto teams when the lobby fills</p>
             </div>
-            <div class="text-xs px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-3xl text-center" style="box-shadow: 0 0 12px rgba(255,16,240,0.12);">
-                <div class="font-mono text-[#FF10F0]" id="games-matched-count" style="text-shadow: 0 0 8px rgba(255,16,240,0.4);">0</div>
-                <div class="text-[10px] text-zinc-500 -mt-0.5">GAMES MATCHED THIS MONTH</div>
+            <div class="text-xs px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-3xl text-center">
+                <div class="font-mono text-[#FF10F0]" id="games-matched-count">0</div>
+                <div class="text-[10px] text-zinc-500 -mt-0.5">OPEN RUNS</div>
+            </div>
+        </div>
+
+        <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 md:p-6 mb-6">
+            <div class="font-semibold mb-3">Start or join a run</div>
+            <div class="grid md:grid-cols-12 gap-3 items-end">
+                <div class="md:col-span-5">
+                    <label class="text-[10px] text-zinc-500 tracking-widest block mb-1">PARK</label>
+                    <select id="match-court-select" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-3 py-3 text-sm"></select>
+                </div>
+                <div class="md:col-span-3">
+                    <label class="text-[10px] text-zinc-500 tracking-widest block mb-1">WHEN</label>
+                    <select id="match-when-select" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-3 py-3 text-sm">
+                        <option value="Now">Now</option>
+                        <option value="Tonight">Tonight</option>
+                        <option value="Weekend">This weekend</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="text-[10px] text-zinc-500 tracking-widest block mb-1">FORMAT</label>
+                    <select id="match-format-select" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-3 py-3 text-sm">
+                        <option value="10">5v5 (10)</option>
+                        <option value="6">3v3 (6)</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <button onclick="createLiveRun()" class="w-full py-3 rounded-2xl text-sm font-semibold bg-gradient-to-r from-[#39FF14] to-[#00c853] text-zinc-950">Create run</button>
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-2 mt-3">
+                <button onclick="fillNearestCourts()" class="text-xs px-3 py-1.5 rounded-full border border-zinc-700 hover:border-[#39FF14]/40">Use my location</button>
+                <button onclick="filterMatchCourts('FL')" class="text-xs px-3 py-1.5 rounded-full border border-zinc-700 hover:border-[#39FF14]/40">Florida parks</button>
+                <button onclick="filterMatchCourts('TX')" class="text-xs px-3 py-1.5 rounded-full border border-zinc-700 hover:border-[#39FF14]/40">Texas parks</button>
+                <button onclick="filterMatchCourts('ALL')" class="text-xs px-3 py-1.5 rounded-full border border-zinc-700 hover:border-[#39FF14]/40">All listed parks</button>
             </div>
         </div>
 
         <div class="grid lg:grid-cols-12 gap-6">
-            <!-- Leaderboard -->
-            <div class="lg:col-span-7 bg-zinc-900 border border-zinc-800 rounded-3xl p-8">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="font-semibold text-xl flex items-center gap-x-2">
-                        <i class="fa-solid fa-trophy text-[#39FF14]" style="text-shadow: 0 0 10px rgba(57,255,20,0.5);"></i> 
-                        <span>Nationwide Top Players</span>
-                    </h3>
-                    <div class="text-xs text-zinc-400">Updated live</div>
-                </div>
-                
-                <div class="space-y-2" id="leaderboard">
-                    <!-- Populated by JS -->
-                </div>
+            <div class="lg:col-span-7 space-y-3" id="live-runs-list">
+                <div class="text-sm text-zinc-500 py-10 text-center">Loading live runs…</div>
             </div>
-
-            <!-- Recent Matches -->
-            <div class="lg:col-span-5 bg-zinc-900 border border-zinc-800 rounded-3xl p-8 flex flex-col">
-                <h3 class="font-semibold text-xl mb-6 flex items-center gap-x-2">
-                    <i class="fa-solid fa-history text-[#FF10F0]" style="text-shadow: 0 0 8px rgba(255,16,240,0.45);"></i> 
-                    <span>Recent Official Matches</span>
-                </h3>
-                
-                <div class="flex-1 space-y-4 text-sm" id="recent-matches">
-                    <!-- Populated dynamically -->
+            <div class="lg:col-span-5 space-y-6">
+                <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+                    <h3 class="font-semibold text-lg mb-4 flex items-center gap-x-2"><i class="fa-solid fa-trophy text-[#39FF14]"></i> Live board</h3>
+                    <div class="space-y-2" id="leaderboard"></div>
                 </div>
-                
-                <button onclick="generateTeamsAndShow()" 
-                        class="mt-6 w-full py-3 text-sm border border-[#39FF14]/50 hover:bg-[#39FF14]/5 hover:border-[#FF10F0]/50 transition-colors rounded-3xl font-medium flex items-center justify-center gap-x-2">
-                    <i class="fa-solid fa-sync text-[#39FF14]"></i>
-                    <span>Generate New Match</span>
-                </button>
+                <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+                    <h3 class="font-semibold text-lg mb-4 flex items-center gap-x-2"><i class="fa-solid fa-history text-[#FF10F0]"></i> Locked matches</h3>
+                    <div class="space-y-3 text-sm" id="recent-matches"></div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- PROFILE MODAL -->
     <div id="profile-modal" onclick="if (event.target.id === 'profile-modal') hideProfileModal()" class="hidden fixed inset-0 bg-black/70 z-[2000] flex items-center justify-center p-4">
-        <div onclick="event.stopImmediatePropagation()" class="hoop-modal bg-zinc-900 border border-zinc-700 rounded-3xl w-full max-w-md overflow-hidden">
+        <div onclick="event.stopImmediatePropagation()" class="hoop-modal bg-zinc-900 border border-zinc-700 rounded-3xl w-full max-w-lg overflow-hidden max-h-[92vh] overflow-y-auto">
             <!-- Dynamic content injected by JS -->
             <div id="profile-modal-content"></div>
         </div>
@@ -619,7 +650,7 @@
 
     <!-- Create/Edit Profile Modal -->
     <div id="create-profile-modal" onclick="if (event.target.id === 'create-profile-modal') hideCreateProfileModal()" class="hidden fixed inset-0 bg-black/70 z-[2000] flex items-center justify-center p-4">
-        <div onclick="event.stopImmediatePropagation()" class="hoop-modal bg-zinc-900 border border-zinc-700 rounded-3xl w-full max-w-lg p-8">
+        <div onclick="event.stopImmediatePropagation()" class="hoop-modal bg-zinc-900 border border-zinc-700 rounded-3xl w-full max-w-lg p-8 max-h-[92vh] overflow-y-auto">
             <h3 id="profile-modal-title" class="text-2xl font-bold mb-1">Join NBL</h3>
             <p id="profile-modal-sub" class="text-zinc-400 mb-6 text-sm">Create your player profile. Get randomly selected for professional pickup games.</p>
             
@@ -670,6 +701,57 @@
                     <label class="text-xs font-medium text-zinc-400 block mb-1.5">SHORT BIO / VIBE</label>
                     <textarea id="create-bio" rows="2" class="w-full bg-zinc-950 border border-zinc-700 focus:border-[#39FF14] rounded-2xl px-4 py-3 text-sm resize-y focus:outline-none" placeholder="Fast break demon. Love playing with good passers."></textarea>
                 </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs font-medium text-zinc-400 block mb-1.5">HOMETOWN</label>
+                        <input id="create-hometown" type="text" placeholder="City, ST" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#39FF14]">
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-zinc-400 block mb-1.5">TEAM / SCHOOL</label>
+                        <input id="create-team" type="text" placeholder="Club or school" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#39FF14]">
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-zinc-400 block mb-1.5">HEIGHT</label>
+                        <input id="create-height" type="text" placeholder="6'2&quot;" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#39FF14]">
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-zinc-400 block mb-1.5">WEIGHT</label>
+                        <input id="create-weight" type="text" placeholder="185" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#39FF14]">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div><label class="text-[10px] text-zinc-500 block mb-1">PPG</label><input id="create-ppg" class="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-2 py-2 text-sm" placeholder="—"></div>
+                    <div><label class="text-[10px] text-zinc-500 block mb-1">RPG</label><input id="create-rpg" class="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-2 py-2 text-sm" placeholder="—"></div>
+                    <div><label class="text-[10px] text-zinc-500 block mb-1">APG</label><input id="create-apg" class="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-2 py-2 text-sm" placeholder="—"></div>
+                    <div><label class="text-[10px] text-zinc-500 block mb-1">SPG</label><input id="create-spg" class="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-2 py-2 text-sm" placeholder="—"></div>
+                    <div><label class="text-[10px] text-zinc-500 block mb-1">BPG</label><input id="create-bpg" class="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-2 py-2 text-sm" placeholder="—"></div>
+                    <div><label class="text-[10px] text-zinc-500 block mb-1">FG%</label><input id="create-fg" class="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-2 py-2 text-sm" placeholder="—"></div>
+                </div>
+                <p class="text-[11px] text-zinc-500 -mt-2">Post real numbers. Only you can edit this card. Stats are labeled self-reported.</p>
+
+                <div>
+                    <label class="text-xs font-medium text-zinc-400 block mb-1.5">TRAINING</label>
+                    <textarea id="create-training" rows="2" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-4 py-3 text-sm resize-y focus:outline-none focus:border-[#39FF14]" placeholder="Gym days, skills work, lifting, film..."></textarea>
+                </div>
+                <div>
+                    <label class="text-xs font-medium text-zinc-400 block mb-1.5">ACCOMPLISHMENTS</label>
+                    <textarea id="create-acc" rows="3" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-4 py-3 text-sm resize-y focus:outline-none focus:border-[#39FF14]" placeholder="One per line — titles, all-league, tourney runs..."></textarea>
+                </div>
+                <div>
+                    <label class="text-xs font-medium text-zinc-400 block mb-1.5">HIGHLIGHT VIDEO URLS</label>
+                    <textarea id="create-videos" rows="2" class="w-full bg-zinc-950 border border-zinc-700 rounded-2xl px-4 py-3 text-sm resize-y focus:outline-none focus:border-[#39FF14]" placeholder="YouTube or https video links, one per line"></textarea>
+                    <div class="flex items-center gap-2 mt-2">
+                        <label class="text-xs px-3 py-2 rounded-xl border border-zinc-700 cursor-pointer hover:bg-zinc-800">Upload clip
+                            <input id="create-video-file" type="file" accept="video/*" class="hidden" onchange="handleHighlightUpload(event, 'video')">
+                        </label>
+                        <label class="text-xs px-3 py-2 rounded-xl border border-zinc-700 cursor-pointer hover:bg-zinc-800">Upload photos
+                            <input id="create-photo-files" type="file" accept="image/*" multiple class="hidden" onchange="handleHighlightUpload(event, 'photo')">
+                        </label>
+                    </div>
+                    <p class="text-[11px] text-zinc-500 mt-1">Uploads go to your private Firebase folder. Max 8 videos / 12 photos.</p>
+                </div>
             </div>
 
             <div class="flex gap-x-3 mt-8">
@@ -703,6 +785,7 @@
         let firebaseReady = false;
         let auth = null;
         let db = null;
+        let storage = null;
         let playersUnsub = null;
         let players = [];
         let map;
@@ -711,6 +794,10 @@
         let currentGeneratedTeams = null;
         let sessionEmail = null;
         let pendingAvatarDataUrl = null;
+        let liveRuns = [];
+        let runsUnsub = null;
+        let lastKnownLat = null;
+        let lastKnownLng = null;
 
         function isFirebaseConfigured() {
             return FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.startsWith('PASTE_');
@@ -732,6 +819,7 @@
                 }
                 auth = firebase.auth();
                 db = firebase.firestore();
+                try { storage = firebase.storage(); } catch (e) { storage = null; }
                 firebaseReady = true;
                 console.log('%c[NBL] Firebase connected', 'color:#39FF14');
                 return true;
@@ -742,7 +830,28 @@
             }
         }
 
+        function asList(v) {
+            if (!v) return [];
+            if (Array.isArray(v)) return v.filter(Boolean);
+            if (typeof v === 'string') return v.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+            return [];
+        }
+        function isOwnProfile(player) {
+            return !!(auth && auth.currentUser && player && (player.uid === auth.currentUser.uid || player.id === auth.currentUser.uid));
+        }
+        function youtubeIdFromUrl(url) {
+            if (!url) return null;
+            var m = String(url).match(/(?:youtu\.be\/|v=|embed\/)([A-Za-z0-9_-]{6,})/);
+            return m ? m[1] : null;
+        }
+        function safeMediaUrl(url) {
+            if (!url || typeof url !== 'string') return '';
+            var u = url.trim();
+            if (u.indexOf('https://') === 0 || u.indexOf('http://') === 0 || u.indexOf('data:image/') === 0 || u.indexOf('blob:') === 0) return u;
+            return '';
+        }
         function docToPlayer(id, data) {
+            data = data || {};
             return {
                 id: id,
                 uid: id,
@@ -750,15 +859,30 @@
                 name: data.name || 'Baller',
                 position: data.position || 'SF',
                 skill: data.skill || 6,
-                lat: data.lat != null ? data.lat : (28.5383 + (Math.random() - 0.5) * 0.03),
-                lng: data.lng != null ? data.lng : (-81.3792 + (Math.random() - 0.5) * 0.03),
+                lat: data.lat != null ? data.lat : null,
+                lng: data.lng != null ? data.lng : null,
                 avatar: data.avatar || 'https://picsum.photos/id/1005/300/300',
                 bio: data.bio || 'Ready to ball.',
                 gamesPlayed: data.gamesPlayed || 0,
                 wins: data.wins || 0,
                 availability: data.availability || 'Now',
                 online: data.online !== false,
-                distance: data.distance || 'Nearby'
+                distance: data.distance || 'Nearby',
+                hometown: data.hometown || '',
+                team: data.team || '',
+                height: data.height || '',
+                weight: data.weight || '',
+                yearsPlaying: data.yearsPlaying || '',
+                ppg: data.ppg || '',
+                rpg: data.rpg || '',
+                apg: data.apg || '',
+                spg: data.spg || '',
+                bpg: data.bpg || '',
+                fgPct: data.fgPct || '',
+                training: data.training || '',
+                accomplishments: asList(data.accomplishments),
+                photos: asList(data.photos).slice(0, 12),
+                videos: asList(data.videos).slice(0, 8)
             };
         }
 
@@ -795,6 +919,230 @@
                     showToast('Could not load live players. Check Firestore rules.');
                 }
             );
+        }
+
+
+        function kmBetween(aLat, aLng, bLat, bLng) {
+            if (aLat == null || aLng == null || bLat == null || bLng == null) return null;
+            var R = 6371;
+            var dLat = (bLat - aLat) * Math.PI / 180;
+            var dLng = (bLng - aLng) * Math.PI / 180;
+            var x = Math.sin(dLat/2)**2 + Math.cos(aLat*Math.PI/180)*Math.cos(bLat*Math.PI/180)*Math.sin(dLng/2)**2;
+            return 2 * R * Math.asin(Math.sqrt(x));
+        }
+
+        function populateCourtSelect(list) {
+            var sel = document.getElementById('match-court-select');
+            if (!sel) return;
+            var rows = list || ALL_COURTS;
+            var hereLat = lastKnownLat || (currentUser && currentUser.lat);
+            var hereLng = lastKnownLng || (currentUser && currentUser.lng);
+            var scored = rows.map(function (c) {
+                var d = kmBetween(hereLat, hereLng, c.lat, c.lng);
+                return Object.assign({}, c, { _km: d });
+            }).sort(function (a, b) {
+                if (a._km == null && b._km == null) return a.name.localeCompare(b.name);
+                if (a._km == null) return 1;
+                if (b._km == null) return -1;
+                return a._km - b._km;
+            });
+            sel.innerHTML = scored.map(function (c) {
+                var dist = c._km != null ? (' · ' + c._km.toFixed(1) + ' km') : '';
+                return '<option value="' + c.name.replace(/"/g, '&quot;') + '">' + c.name + ' — ' + c.area + ' ' + c.state + dist + '</option>';
+            }).join('');
+        }
+
+        function filterMatchCourts(state) {
+            if (state === 'FL' || state === 'TX') populateCourtSelect(ALL_COURTS.filter(function (c) { return c.state === state; }));
+            else populateCourtSelect(ALL_COURTS);
+        }
+
+        function fillNearestCourts() {
+            useMyLocation({ silent: false });
+            setTimeout(function () { populateCourtSelect(ALL_COURTS); }, 800);
+        }
+
+        function courtByName(name) {
+            return ALL_COURTS.find(function (c) { return c.name === name; }) || null;
+        }
+
+        function subscribeLiveRuns() {
+            if (!firebaseReady || !db) return;
+            if (runsUnsub) { try { runsUnsub(); } catch (e) {} }
+            runsUnsub = db.collection('runs').orderBy('createdAt', 'desc').limit(40).onSnapshot(function (snap) {
+                liveRuns = [];
+                snap.forEach(function (doc) {
+                    liveRuns.push(Object.assign({ id: doc.id }, doc.data()));
+                });
+                renderLiveRuns();
+                renderLockedMatches();
+                var openN = liveRuns.filter(function (r) { return r.status === 'open'; }).length;
+                var el = document.getElementById('games-matched-count');
+                if (el) el.textContent = String(openN);
+            }, function (err) {
+                console.error('[NBL] runs listen failed', err);
+                var box = document.getElementById('live-runs-list');
+                if (box) box.innerHTML = '<div class="text-sm text-zinc-500 py-8 text-center">Could not load runs. Add Firestore rules for collection <b>runs</b>.</div>';
+            });
+        }
+
+        function renderLiveRuns() {
+            var box = document.getElementById('live-runs-list');
+            if (!box) return;
+            var open = liveRuns.filter(function (r) { return r.status === 'open' || r.status === 'matched'; });
+            if (!open.length) {
+                box.innerHTML = '<div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 text-center text-sm text-zinc-500">No open runs. Pick a park and create one — other signed-in players can jump in.</div>';
+                return;
+            }
+            var uid = auth && auth.currentUser && auth.currentUser.uid;
+            var hereLat = lastKnownLat || (currentUser && currentUser.lat);
+            var hereLng = lastKnownLng || (currentUser && currentUser.lng);
+            box.innerHTML = open.map(function (run) {
+                var need = run.need || parseInt(run.format, 10) || 10;
+                var uids = run.playerUids || [];
+                var spots = Math.max(0, need - uids.length);
+                var mine = uid && uids.indexOf(uid) !== -1;
+                var d = kmBetween(hereLat, hereLng, run.lat, run.lng);
+                var dist = d != null ? d.toFixed(1) + ' km away' : (run.area || '');
+                var names = (run.playerNames || []).slice(0, 8).join(', ');
+                var teams = '';
+                if (run.status === 'matched' && run.teamA && run.teamB) {
+                    teams = '<div class="mt-3 grid grid-cols-2 gap-2 text-[11px]"><div class="bg-zinc-950 rounded-xl p-2 border border-[#39FF14]/30"><div class="text-[#39FF14] font-semibold mb-1">NEON</div>' +
+                        (run.teamA || []).map(function (n) { return n; }).join('<br>') +
+                        '</div><div class="bg-zinc-950 rounded-xl p-2 border border-[#FF10F0]/30"><div class="text-[#FF10F0] font-semibold mb-1">PINK</div>' +
+                        (run.teamB || []).map(function (n) { return n; }).join('<br>') + '</div></div>';
+                }
+                var actions = '';
+                if (!uid) actions = '<button onclick="showAuthModal(\'login\')" class="px-4 py-2 text-xs rounded-2xl border border-zinc-600">Log in to join</button>';
+                else if (mine && run.status === 'open') actions = '<button onclick="leaveLiveRun(\'' + run.id + '\')" class="px-4 py-2 text-xs rounded-2xl border border-zinc-600">Leave</button>' +
+                    (uids[0] === uid ? '<button onclick="lockLiveRun(\'' + run.id + '\')" class="px-4 py-2 text-xs rounded-2xl bg-[#39FF14] text-zinc-950 font-semibold">Lock teams</button>' : '');
+                else if (!mine && run.status === 'open' && spots > 0) actions = '<button onclick="joinLiveRun(\'' + run.id + '\')" class="px-4 py-2 text-xs rounded-2xl bg-[#39FF14] text-zinc-950 font-semibold">Join this run</button>';
+                else if (run.status === 'matched') actions = '<span class="text-[11px] text-[#39FF14]">Teams locked</span>';
+                return '<div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-5">' +
+                    '<div class="flex justify-between gap-3 items-start"><div>' +
+                    '<div class="font-semibold text-lg">' + (run.courtName || 'Park') + '</div>' +
+                    '<div class="text-xs text-zinc-400 mt-0.5">' + (run.area || '') + ' ' + (run.state || '') + ' • ' + dist + ' • ' + (run.when || 'Now') + '</div>' +
+                    '</div><div class="text-right text-xs"><div class="font-mono text-[#39FF14]">' + uids.length + '/' + need + '</div><div class="text-zinc-500">' + spots + ' spots</div></div></div>' +
+                    '<div class="text-xs text-zinc-500 mt-2">' + (names || 'Waiting on ballers…') + '</div>' +
+                    teams +
+                    '<div class="flex justify-end gap-2 mt-4">' + actions + '</div></div>';
+            }).join('');
+        }
+
+        function renderLockedMatches() {
+            var box = document.getElementById('recent-matches');
+            if (!box) return;
+            var locked = liveRuns.filter(function (r) { return r.status === 'matched' || r.status === 'locked'; }).slice(0, 6);
+            if (!locked.length) {
+                box.innerHTML = '<div class="text-sm text-zinc-500 py-4 text-center">Locked matches show up here after a lobby fills.</div>';
+                return;
+            }
+            box.innerHTML = locked.map(function (run) {
+                return '<div class="bg-zinc-950 border border-zinc-800 rounded-2xl p-3 text-xs"><div class="font-semibold">' + (run.courtName || '') + '</div><div class="text-zinc-500 mt-1">' + (run.when || '') + ' • ' + ((run.playerUids||[]).length) + ' players</div></div>';
+            }).join('');
+        }
+
+        async function createLiveRun() {
+            if (!auth || !auth.currentUser || !db || !currentUser) {
+                showAuthModal('signup');
+                return;
+            }
+            var name = (document.getElementById('match-court-select') || {}).value;
+            var court = courtByName(name);
+            if (!court) { showToast('Pick a listed park.'); return; }
+            var fmt = parseInt((document.getElementById('match-format-select') || {}).value, 10) || 10;
+            var when = (document.getElementById('match-when-select') || {}).value || 'Now';
+            try {
+                await db.collection('runs').add({
+                    courtName: court.name,
+                    area: court.area,
+                    state: court.state,
+                    lat: court.lat,
+                    lng: court.lng,
+                    format: fmt,
+                    need: fmt,
+                    when: when,
+                    status: 'open',
+                    createdBy: auth.currentUser.uid,
+                    playerUids: [auth.currentUser.uid],
+                    playerNames: [currentUser.name || 'Baller'],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                showToast('Run posted at ' + court.name + '. Waiting on real players.');
+                if (map) map.flyTo([court.lat, court.lng], 13, { duration: 0.8 });
+            } catch (e) {
+                console.error(e);
+                showToast('Could not create run. Allow read/write on Firestore collection runs.');
+            }
+        }
+
+        async function joinLiveRun(id) {
+            if (!auth || !auth.currentUser || !db || !currentUser) { showAuthModal('login'); return; }
+            var run = liveRuns.find(function (r) { return r.id === id; });
+            if (!run) return;
+            var uids = run.playerUids || [];
+            if (uids.indexOf(auth.currentUser.uid) !== -1) return;
+            if (uids.length >= (run.need || 10)) { showToast('That run is full.'); return; }
+            try {
+                await db.collection('runs').doc(id).update({
+                    playerUids: firebase.firestore.FieldValue.arrayUnion(auth.currentUser.uid),
+                    playerNames: firebase.firestore.FieldValue.arrayUnion(currentUser.name || 'Baller')
+                });
+                showToast('You are in at ' + (run.courtName || 'the park') + '.');
+                maybeAutoLockRun(id);
+            } catch (e) {
+                console.error(e);
+                showToast('Join failed.');
+            }
+        }
+
+        async function leaveLiveRun(id) {
+            if (!auth || !auth.currentUser || !db) return;
+            var run = liveRuns.find(function (r) { return r.id === id; });
+            if (!run) return;
+            try {
+                await db.collection('runs').doc(id).update({
+                    playerUids: firebase.firestore.FieldValue.arrayRemove(auth.currentUser.uid),
+                    playerNames: firebase.firestore.FieldValue.arrayRemove(currentUser && currentUser.name)
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        function balanceNames(playerObjs) {
+            var list = playerObjs.slice().sort(function (a, b) { return (b.skill || 6) - (a.skill || 6); });
+            var a = [], b = [];
+            list.forEach(function (p, i) { (i % 2 === 0 ? a : b).push(p.name || 'Baller'); });
+            return { teamA: a, teamB: b };
+        }
+
+        async function maybeAutoLockRun(id) {
+            var run = liveRuns.find(function (r) { return r.id === id; });
+            if (!run || run.status !== 'open') return;
+            if ((run.playerUids || []).length < (run.need || 10)) return;
+            await lockLiveRun(id);
+        }
+
+        async function lockLiveRun(id) {
+            if (!db) return;
+            var run = liveRuns.find(function (r) { return r.id === id; });
+            if (!run) return;
+            var objs = (run.playerUids || []).map(function (uid) {
+                return players.find(function (p) { return p.id === uid; }) || { name: uid.slice(0, 6), skill: 6 };
+            });
+            var teams = balanceNames(objs);
+            try {
+                await db.collection('runs').doc(id).update({
+                    status: 'matched',
+                    teamA: teams.teamA,
+                    teamB: teams.teamB,
+                    matchedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                showToast('Teams locked at ' + run.courtName + '.');
+                if (map && run.lat) map.flyTo([run.lat, run.lng], 14, { duration: 0.8 });
+            } catch (e) {
+                console.error(e);
+                showToast('Could not lock teams.');
+            }
         }
 
         function loadActivePlayers() {
@@ -1106,75 +1454,129 @@
         }
 
         // Show profile modal
+        function switchProfilePane(id) {
+            document.querySelectorAll('.nbl-pane').forEach(function (el) { el.classList.add('hidden'); });
+            document.querySelectorAll('.nbl-prof-tab').forEach(function (el) { el.classList.remove('active'); });
+            var pane = document.getElementById(id);
+            if (pane) pane.classList.remove('hidden');
+            var tab = document.querySelector('[data-pane="' + id + '"]');
+            if (tab) tab.classList.add('active');
+        }
+
+        function renderMediaBlock(player) {
+            var photos = (player.photos || []).map(safeMediaUrl).filter(Boolean);
+            var videos = (player.videos || []).map(function (u) { return String(u).trim(); }).filter(Boolean);
+            var html = '';
+            if (!photos.length && !videos.length) {
+                return '<div class="text-sm text-zinc-500 py-6 text-center">No photos or film yet.</div>';
+            }
+            if (photos.length) {
+                html += '<div class="text-[10px] tracking-widest text-zinc-500 mb-2">PHOTOS</div><div class="nbl-media-grid mb-4">';
+                photos.forEach(function (src) {
+                    html += '<a href="' + src.replace(/"/g, '') + '" target="_blank" rel="noopener noreferrer"><img src="' + src.replace(/"/g, '') + '" alt="Player photo"></a>';
+                });
+                html += '</div>';
+            }
+            if (videos.length) {
+                html += '<div class="text-[10px] tracking-widest text-zinc-500 mb-2">FILM</div><div class="space-y-3">';
+                videos.forEach(function (url) {
+                    var yt = youtubeIdFromUrl(url);
+                    if (yt) {
+                        html += '<div class="nbl-video-frame"><iframe src="https://www.youtube.com/embed/' + yt + '" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>';
+                    } else if (safeMediaUrl(url)) {
+                        html += '<div class="nbl-video-frame"><video src="' + safeMediaUrl(url).replace(/"/g, '') + '" controls playsinline></video></div>';
+                    }
+                });
+                html += '</div>';
+            }
+            return html;
+        }
+
         function showProfileModal(player) {
             const modal = document.getElementById('profile-modal');
             const content = document.getElementById('profile-modal-content');
-            
+            if (!player) return;
+
             const winRate = Math.round((player.wins / player.gamesPlayed) * 100) || 0;
-            
+            const mine = isOwnProfile(player);
+            const acc = (player.accomplishments || []).map(function (a) {
+                return '<li class="text-sm text-zinc-300 flex gap-x-2"><span class="text-[#39FF14]">▸</span><span>' + String(a).replace(/</g, '') + '</span></li>';
+            }).join('');
+            const stat = function (label, val) {
+                return '<div class="bg-zinc-950 border border-zinc-800 rounded-2xl p-3 text-center"><div class="text-lg font-bold tabular-nums">' + (val || '—') + '</div><div class="text-[9px] text-zinc-500 tracking-widest">' + label + '</div></div>';
+            };
+
             content.innerHTML = `
                 <div class="relative">
-                    <!-- Header with avatar -->
-                    <div class="h-40 bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-end justify-center relative overflow-hidden">
-                        <img src="${player.avatar}" class="w-28 h-28 rounded-3xl object-cover border-4 border-zinc-900 shadow-xl -mb-8 z-10" alt="${player.name}">
-                        ${player.online ? `
-                            <div class="absolute top-4 right-4 px-3 py-1 bg-emerald-500 text-emerald-950 text-[10px] font-bold rounded-2xl flex items-center gap-x-1.5">
-                                <div class="w-1.5 h-1.5 bg-emerald-950 rounded-full animate-pulse"></div>
-                                ONLINE NOW
-                            </div>
-                        ` : ''}
+                    <div class="h-36 bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-end justify-center relative overflow-hidden">
+                        <img src="${player.avatar}" class="w-24 h-24 rounded-3xl object-cover border-4 border-zinc-900 shadow-xl -mb-8 z-10" alt="">
+                        ${player.online ? `<div class="absolute top-4 right-4 px-3 py-1 bg-emerald-500 text-emerald-950 text-[10px] font-bold rounded-2xl">ONLINE</div>` : ''}
+                        <button onclick="hideProfileModal()" class="absolute top-3 left-3 text-zinc-300 text-xl leading-none">&times;</button>
                     </div>
-                    
-                    <div class="px-7 pt-10 pb-7">
-                        <div class="flex justify-between items-start">
+                    <div class="px-6 pt-10 pb-6">
+                        <div class="flex justify-between items-start gap-3">
                             <div>
                                 <div class="font-bold text-2xl tracking-tight">${player.name}</div>
-                                <div class="flex items-center gap-x-2 mt-1">
+                                <div class="flex flex-wrap items-center gap-2 mt-1">
                                     <span class="px-3 py-px text-xs font-bold bg-zinc-800 text-[#39FF14] rounded-xl">${player.position}</span>
-                                    <span class="text-xs text-zinc-400">${player.distance || 'Nearby'}</span>
+                                    ${player.hometown ? `<span class="text-xs text-zinc-400">${player.hometown}</span>` : ''}
+                                    ${player.team ? `<span class="text-xs text-zinc-500">• ${player.team}</span>` : ''}
                                 </div>
                             </div>
-                            
                             <div class="text-right">
-                                <div class="text-4xl font-bold text-[#FF10F0] tabular-nums" style="text-shadow: 0 0 12px rgba(255,16,240,0.45);">${player.skill}</div>
-                                <div class="text-[10px] text-zinc-500 -mt-1 tracking-wider">SKILL</div>
+                                <div class="text-4xl font-bold text-[#FF10F0] tabular-nums">${player.skill}</div>
+                                <div class="text-[10px] text-zinc-500 -mt-1">SKILL</div>
                             </div>
                         </div>
-                        
-                        <div class="mt-5 text-sm text-zinc-300 leading-relaxed">
-                            "${player.bio}"
+                        <div class="mt-3 text-sm text-zinc-300">"${player.bio || ''}"</div>
+                        <div class="text-[10px] text-zinc-500 mt-2">Self-reported card • Only ${mine ? 'you' : 'the owner'} can edit these numbers</div>
+
+                        <div class="flex gap-1 mt-4 bg-zinc-950 p-1 rounded-2xl border border-zinc-800">
+                            <button data-pane="pane-overview" onclick="switchProfilePane('pane-overview')" class="nbl-prof-tab active flex-1 text-[11px] font-semibold py-2 rounded-xl">Card</button>
+                            <button data-pane="pane-media" onclick="switchProfilePane('pane-media')" class="nbl-prof-tab flex-1 text-[11px] font-semibold py-2 rounded-xl text-zinc-400">Film</button>
+                            <button data-pane="pane-train" onclick="switchProfilePane('pane-train')" class="nbl-prof-tab flex-1 text-[11px] font-semibold py-2 rounded-xl text-zinc-400">Work</button>
                         </div>
-                        
-                        <!-- Stats -->
-                        <div class="grid grid-cols-3 gap-4 mt-6">
-                            <div class="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 text-center">
-                                <div class="text-2xl font-bold tabular-nums">${player.gamesPlayed}</div>
-                                <div class="text-[10px] text-zinc-500 tracking-widest">GAMES</div>
+
+                        <div id="pane-overview" class="nbl-pane mt-4">
+                            <div class="grid grid-cols-3 gap-2 mb-3">
+                                ${stat('GAMES', player.gamesPlayed)}
+                                ${stat('WINS', player.wins)}
+                                ${stat('WIN %', winRate)}
                             </div>
-                            <div class="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 text-center">
-                                <div class="text-2xl font-bold tabular-nums text-emerald-400">${player.wins}</div>
-                                <div class="text-[10px] text-zinc-500 tracking-widest">WINS</div>
+                            <div class="grid grid-cols-3 gap-2 mb-3">
+                                ${stat('PPG', player.ppg)}
+                                ${stat('RPG', player.rpg)}
+                                ${stat('APG', player.apg)}
                             </div>
-                            <div class="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 text-center">
-                                <div class="text-2xl font-bold tabular-nums">${winRate}<span class="text-base align-super">%</span></div>
-                                <div class="text-[10px] text-zinc-500 tracking-widest">WIN RATE</div>
+                            <div class="grid grid-cols-3 gap-2">
+                                ${stat('SPG', player.spg)}
+                                ${stat('BPG', player.bpg)}
+                                ${stat('FG%', player.fgPct)}
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 mt-3 text-center text-xs text-zinc-400">
+                                <div>${player.height || '—'}<div class="text-[9px] text-zinc-600">HEIGHT</div></div>
+                                <div>${player.weight || '—'}<div class="text-[9px] text-zinc-600">WEIGHT</div></div>
+                                <div>${player.yearsPlaying || '—'}<div class="text-[9px] text-zinc-600">YRS</div></div>
                             </div>
                         </div>
-                        
+
+                        <div id="pane-media" class="nbl-pane hidden mt-4">${renderMediaBlock(player)}</div>
+
+                        <div id="pane-train" class="nbl-pane hidden mt-4">
+                            <div class="text-[10px] tracking-widest text-zinc-500 mb-2">TRAINING</div>
+                            <p class="text-sm text-zinc-300 whitespace-pre-wrap">${(player.training || 'No training notes yet.').replace(/</g, '')}</p>
+                            <div class="text-[10px] tracking-widest text-zinc-500 mt-4 mb-2">ACCOMPLISHMENTS</div>
+                            ${acc ? '<ul class="space-y-2">' + acc + '</ul>' : '<p class="text-sm text-zinc-500">No accolades listed yet.</p>'}
+                        </div>
+
                         <div class="mt-6 flex gap-x-3">
-                            <button onclick="inviteToGame(${player.id}); hideProfileModal()" 
-                                    class="flex-1 py-3.5 bg-white text-zinc-950 font-semibold rounded-3xl text-sm active:scale-[0.985] transition-transform">
-                                INVITE TO MATCH
-                            </button>
-                            <button onclick="quickMatchWithPlayer(${player.id}); hideProfileModal()" 
-                                    class="flex-1 py-3.5 border border-[#FF10F0] text-[#FF10F0] hover:bg-[#FF10F0]/10 font-semibold rounded-3xl text-sm transition-colors" style="box-shadow: 0 0 12px rgba(255,16,240,0.15);">
-                                AUTO-MATCH WITH ME
-                            </button>
+                            ${mine ? `<button onclick="hideProfileModal(); showCreateProfileModal()" class="flex-1 py-3 bg-[#39FF14] text-zinc-950 font-semibold rounded-3xl text-sm">EDIT MY CARD</button>` : `
+                            <button onclick="inviteToGame(${JSON.stringify(String(player.id))}); hideProfileModal()" class="flex-1 py-3 bg-white text-zinc-950 font-semibold rounded-3xl text-sm">INVITE</button>
+                            <button onclick="quickMatchWithPlayer(${JSON.stringify(String(player.id))}); hideProfileModal()" class="flex-1 py-3 border border-[#FF10F0] text-[#FF10F0] font-semibold rounded-3xl text-sm">MATCH</button>`}
                         </div>
                     </div>
                 </div>
             `;
-            
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         }
@@ -1702,6 +2104,9 @@
             }
             if (tab === 'compete') {
                 renderLeaderboard();
+                populateCourtSelect(ALL_COURTS);
+                renderLiveRuns();
+                renderLockedMatches();
             }
         }
 
@@ -2103,6 +2508,20 @@
             if (skillVal) skillVal.innerText = String(currentUser.skill || 6);
             if (bioIn) bioIn.value = currentUser.bio || '';
             if (fileIn) fileIn.value = '';
+            const setv = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+            setv('create-hometown', currentUser.hometown);
+            setv('create-team', currentUser.team);
+            setv('create-height', currentUser.height);
+            setv('create-weight', currentUser.weight);
+            setv('create-ppg', currentUser.ppg);
+            setv('create-rpg', currentUser.rpg);
+            setv('create-apg', currentUser.apg);
+            setv('create-spg', currentUser.spg);
+            setv('create-bpg', currentUser.bpg);
+            setv('create-fg', currentUser.fgPct);
+            setv('create-training', currentUser.training);
+            setv('create-acc', (currentUser.accomplishments || []).join('\n'));
+            setv('create-videos', (currentUser.videos || []).join('\n'));
             pendingAvatarDataUrl = null;
             setAvatarPreview(currentUser.avatar || null);
             const title = document.getElementById('profile-modal-title');
@@ -2116,6 +2535,55 @@
         function hideCreateProfileModal() {
             document.getElementById('create-profile-modal').classList.remove('flex');
             document.getElementById('create-profile-modal').classList.add('hidden');
+        }
+
+
+        async function uploadToStorage(file, kind) {
+            if (!storage || !auth || !auth.currentUser) {
+                throw new Error('Sign in and enable Storage to upload media.');
+            }
+            const uid = auth.currentUser.uid;
+            const safe = (file.name || kind).replace(/[^\w.\-]+/g, '_').slice(-80);
+            const path = 'users/' + uid + '/' + kind + '/' + Date.now() + '_' + safe;
+            const ref = storage.ref().child(path);
+            const snap = await ref.put(file, { contentType: file.type || undefined });
+            return await snap.ref.getDownloadURL();
+        }
+
+        async function handleHighlightUpload(event, kind) {
+            const files = event.target.files ? Array.from(event.target.files) : [];
+            if (!files.length) return;
+            if (!auth || !auth.currentUser) {
+                showToast('Log in first to upload media.');
+                return;
+            }
+            showToast('Uploading ' + files.length + ' file(s)…');
+            try {
+                const urls = [];
+                for (const file of files) {
+                    if (kind === 'photo' && !file.type.startsWith('image/')) continue;
+                    if (kind === 'video' && !file.type.startsWith('video/')) continue;
+                    if (file.size > 40 * 1024 * 1024) {
+                        showToast(file.name + ' is over 40MB — skipped');
+                        continue;
+                    }
+                    urls.push(await uploadToStorage(file, kind === 'video' ? 'videos' : 'photos'));
+                }
+                if (kind === 'photo') {
+                    currentUser.photos = asList(currentUser.photos).concat(urls).slice(0, 12);
+                    showToast(urls.length + ' photo(s) added to your card.');
+                } else {
+                    const box = document.getElementById('create-videos');
+                    const extra = urls.join('\n');
+                    if (box) box.value = (box.value ? box.value + '\n' : '') + extra;
+                    currentUser.videos = asList(currentUser.videos).concat(urls).slice(0, 8);
+                    showToast(urls.length + ' clip(s) added.');
+                }
+            } catch (e) {
+                console.error('[NBL] upload failed', e);
+                showToast('Upload failed. Enable Firebase Storage and allow users/' + (auth.currentUser && auth.currentUser.uid) + ' writes.');
+            }
+            event.target.value = '';
         }
 
         async function createOrUpdateProfile() {
@@ -2132,6 +2600,9 @@
             const avatar = pendingAvatarDataUrl || currentUser.avatar || "https://picsum.photos/id/1005/300/300";
             const uid = auth.currentUser.uid;
 
+            const gv = (id) => (document.getElementById(id) && document.getElementById(id).value || '').trim();
+            const videos = asList(gv('create-videos')).map(safeMediaUrl).filter(Boolean).slice(0, 8);
+            const photos = asList(currentUser.photos).map(safeMediaUrl).filter(Boolean).slice(0, 12);
             const payload = {
                 email: auth.currentUser.email || currentUser.email || '',
                 name: name,
@@ -2139,12 +2610,26 @@
                 skill: skill,
                 bio: bio,
                 avatar: avatar,
-                lat: currentUser.lat || (28.5383 + (Math.random() - 0.5) * 0.03),
-                lng: currentUser.lng || (-81.3792 + (Math.random() - 0.5) * 0.03),
+                lat: currentUser.lat != null ? currentUser.lat : null,
+                lng: currentUser.lng != null ? currentUser.lng : null,
                 gamesPlayed: currentUser.gamesPlayed || 0,
                 wins: currentUser.wins || 0,
                 availability: "Now",
                 online: true,
+                hometown: gv('create-hometown').slice(0, 80),
+                team: gv('create-team').slice(0, 80),
+                height: gv('create-height').slice(0, 16),
+                weight: gv('create-weight').slice(0, 16),
+                ppg: gv('create-ppg').slice(0, 8),
+                rpg: gv('create-rpg').slice(0, 8),
+                apg: gv('create-apg').slice(0, 8),
+                spg: gv('create-spg').slice(0, 8),
+                bpg: gv('create-bpg').slice(0, 8),
+                fgPct: gv('create-fg').slice(0, 8),
+                training: gv('create-training').slice(0, 2000),
+                accomplishments: asList(gv('create-acc')).slice(0, 20),
+                photos: photos,
+                videos: videos,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
@@ -2172,6 +2657,8 @@
                 currentUser.lat = lat;
                 currentUser.lng = lng;
             }
+            lastKnownLat = lat;
+            lastKnownLng = lng;
         }
 
         function useMyLocation(opts) {
@@ -2306,6 +2793,8 @@
                         }
                     });
                     subscribeActivePlayers();
+                    subscribeLiveRuns();
+                    populateCourtSelect(ALL_COURTS);
                 } else {
                     currentUser = null;
                     updateNavUser();
@@ -2315,7 +2804,7 @@
                 }
 
                 initMap();
-                setTimeout(function () { useMyLocation({ silent: true }); }, 400);
+                setTimeout(function () { useMyLocation({ silent: true }); populateCourtSelect(ALL_COURTS); }, 400);
                 renderProfiles();
                 renderLeaderboard();
                 initializeRecentMatches();
