@@ -377,24 +377,29 @@
                 <div id="map" class="w-full h-full bg-zinc-900"></div>
                 
                 <!-- Map Overlays -->
-                <div class="absolute top-4 left-4 z-[1000]">
-                    <div class="bg-zinc-900/90 backdrop-blur-xl border border-zinc-700 rounded-3xl px-4 py-3 text-sm flex items-center gap-x-3" style="box-shadow: 0 0 16px rgba(57,255,20,0.12);">
-                        <div>
-                            <div class="font-semibold text-[#39FF14]" id="courts-hot-count" style="text-shadow: 0 0 8px rgba(57,255,20,0.45);">No courts hot</div>
-                            <div class="text-xs text-zinc-400" id="courts-region-sub">FL &amp; TX parks • players nationwide</div>
+                <div class="absolute top-3 left-3 z-[1000] w-[min(18.5rem,calc(100%-1.5rem))] pointer-events-auto">
+                    <div class="bg-zinc-950/90 backdrop-blur-xl border border-[#39FF14]/25 rounded-3xl overflow-hidden" style="box-shadow:0 0 28px rgba(57,255,20,.12);">
+                        <div class="px-4 pt-3 pb-2 flex items-center gap-3 border-b border-zinc-800">
+                            <div class="w-9 h-9 rounded-2xl bg-[#39FF14] text-zinc-950 flex items-center justify-center shrink-0 overflow-hidden" id="radar-avatar">
+                                <i class="fa-solid fa-basketball"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="text-[10px] tracking-[0.18em] text-[#39FF14] font-semibold" id="radar-kicker">LIVE COURT RADAR</div>
+                                <div class="text-sm font-semibold truncate" id="radar-greet">Lace up. The board is live.</div>
+                                <div class="text-[11px] text-zinc-500 truncate" id="courts-hot-count">Scanning rims…</div>
+                            </div>
                         </div>
+                        <div id="hot-board" class="max-h-[42vh] overflow-y-auto divide-y divide-zinc-800/80"></div>
+                        <button type="button" onclick="switchTab('compete')" class="w-full text-left px-4 py-3 text-[12px] font-semibold bg-gradient-to-r from-[#39FF14] to-[#00c853] text-zinc-950">
+                            Jump a run before the board flips →
+                        </button>
                     </div>
                 </div>
                 
-                <div class="absolute top-4 right-4 z-[1000] flex flex-col items-end gap-2">
-                    <div class="flex items-center gap-x-1 bg-zinc-900/90 backdrop-blur-xl border border-zinc-700 rounded-3xl p-1 text-xs">
-                        <button type="button" onclick="focusCourtRegion('ALL')" id="region-btn-ALL" class="px-3 py-1.5 rounded-2xl font-semibold bg-[#39FF14] text-zinc-950">Both</button>
-                        <button type="button" onclick="focusCourtRegion('FL')" id="region-btn-FL" class="px-3 py-1.5 rounded-2xl font-semibold text-zinc-400 hover:text-white">Florida</button>
-                        <button type="button" onclick="focusCourtRegion('TX')" id="region-btn-TX" class="px-3 py-1.5 rounded-2xl font-semibold text-zinc-400 hover:text-white">Texas</button>
-                    </div>
-                    <div onclick="showFilters()" class="cursor-pointer bg-zinc-900/90 backdrop-blur-xl border border-zinc-700 hover:border-[#FF10F0]/50 transition-colors px-5 py-2.5 rounded-3xl text-sm flex items-center gap-x-2">
+                <div class="absolute top-3 right-3 z-[1000]">
+                    <div onclick="showFilters()" class="cursor-pointer bg-zinc-900/90 backdrop-blur-xl border border-zinc-700 hover:border-[#FF10F0]/50 transition-colors px-4 py-2.5 rounded-3xl text-sm flex items-center gap-x-2">
                         <i class="fa-solid fa-filter text-[#FF10F0]"></i>
-                        <span class="font-medium">Filters</span>
+                        <span class="font-medium hidden sm:inline">Filters</span>
                     </div>
                 </div>
 
@@ -919,7 +924,7 @@
                         markers = [];
                         addPlayerMarkers();
                     }
-                    try { renderProfiles(); renderLeaderboard(); } catch (e) {}
+                    try { renderProfiles(); renderLeaderboard(); renderHotBoard(); addCourtMarkers(); } catch (e) {}
                 },
                 (err) => {
                     console.error('[NBL] players listen failed:', err);
@@ -1360,9 +1365,6 @@
         const ORLANDO_COURTS = ALL_COURTS; // backward-compatible alias
 
         function visibleCourts() {
-            if (courtRegion === 'FL' || courtRegion === 'TX') {
-                return ALL_COURTS.filter(c => c.state === courtRegion);
-            }
             return ALL_COURTS;
         }
 
@@ -1510,6 +1512,72 @@
             openParkCardByIndex(idx);
         }
 
+
+        var RADAR_LINES = [
+            "The floor is yours tonight.",
+            "Stay close. Runs don't wait.",
+            "Warm hands. Clear head. Next.",
+            "You're on the sheet. Don't fade.",
+            "Move like you mean the next possession.",
+            "Quiet confidence. Loud finishes.",
+            "The gym already knows your name.",
+            "One more run before you bounce."
+        ];
+        function firstNameOf(player) {
+            var n = (player && player.name) ? String(player.name).trim() : '';
+            if (!n) return '';
+            return n.split(/\s+/)[0];
+        }
+        function radarPhrase(name) {
+            var line = RADAR_LINES[(name ? name.length : 0) % RADAR_LINES.length];
+            return name ? (name + ". " + line) : line;
+        }
+        function refreshRadarGreeting() {
+            var greet = document.getElementById('radar-greet');
+            var kicker = document.getElementById('radar-kicker');
+            var av = document.getElementById('radar-avatar');
+            var mine = !!(currentUser && (sessionEmail || (auth && auth.currentUser)));
+            var name = mine ? firstNameOf(currentUser) : '';
+            if (kicker) kicker.textContent = mine ? 'YOUR BOARD' : 'LIVE COURT RADAR';
+            if (greet) greet.textContent = mine ? radarPhrase(name) : 'Lace up. The board is live.';
+            if (av) {
+                if (mine && currentUser && currentUser.avatar) {
+                    av.innerHTML = '<img src="' + String(currentUser.avatar).replace(/"/g,'') + '" alt="" style="width:100%;height:100%;object-fit:cover">';
+                } else {
+                    av.innerHTML = '<i class="fa-solid fa-basketball"></i>';
+                }
+            }
+        }
+
+        function renderHotBoard() {
+            refreshRadarGreeting();
+            var box = document.getElementById('hot-board');
+            var label = document.getElementById('courts-hot-count');
+            if (!box) return;
+            var ranked = ALL_COURTS.map(function (c) {
+                return { court: c, n: nearbyActiveAtCourt(c, 3.2) };
+            }).sort(function (a, b) { return b.n - a.n; });
+            var hot = ranked.filter(function (r) { return r.n > 0; });
+            var show = (hot.length ? hot : ranked).slice(0, 6);
+            if (label) {
+                label.textContent = hot.length ? (hot.length + ' courts running') : 'Quiet board — first run wins the pin';
+            }
+            box.innerHTML = show.map(function (row, i) {
+                var c = row.court;
+                var live = row.n > 0;
+                var idx = ALL_COURTS.indexOf(c);
+                return '<button type="button" data-park-i="' + idx + '" class="nbl-park-card-btn w-full text-left px-4 py-2.5 hover:bg-zinc-900/80 flex items-center gap-3">' +
+                    '<div class="w-7 text-center font-mono text-[11px] ' + (i === 0 && live ? 'text-[#39FF14]' : 'text-zinc-500') + '">' + (live ? '●' : String(i + 1).padStart(2,'0')) + '</div>' +
+                    '<div class="min-w-0 flex-1">' +
+                    '<div class="text-[13px] font-semibold truncate">' + c.name.replace(/</g,'') + '</div>' +
+                    '<div class="text-[10px] text-zinc-500 truncate">' + (c.nature || c.area) + (live ? ' · bodies on the slab' : ' · waiting on a squad') + '</div>' +
+                    '</div>' +
+                    '<div class="text-right shrink-0">' +
+                    '<div class="font-mono text-xs ' + (live ? 'text-[#FF10F0]' : 'text-zinc-600') + '">' + row.n + '</div>' +
+                    '<div class="text-[9px] text-zinc-600">NEAR</div></div></button>';
+            }).join('');
+        }
+
         function nearbyActiveAtCourt(court, radiusKm) {
             const R = 6371;
             let n = 0;
@@ -1562,12 +1630,7 @@
                 );
             });
 
-            const courtsLabel = document.getElementById('courts-hot-count');
-            if (courtsLabel) {
-                const list = visibleCourts();
-                const hotCount = list.filter(c => nearbyActiveAtCourt(c, 2.5) > 0).length;
-                courtsLabel.textContent = hotCount > 0 ? hotCount + ' courts hot' : list.length + ' courts mapped';
-            }
+            try { renderHotBoard(); } catch (e) {}
         }
 
         // Show profile modal
@@ -2432,6 +2495,7 @@
                 userBlock.classList.add('hidden');
                 closeUserMenu();
             }
+            try { refreshRadarGreeting(); } catch (e) {}
         }
 
         function toggleUserMenu() {
