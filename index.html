@@ -257,6 +257,23 @@
         .nbl-glass .nbl-park-card-btn:hover { background: rgba(57,255,20,.06); }
         #radar-weather { color: #9dff9a !important; letter-spacing: .01em; }
         #radar-kicker { color: #b8ff6a !important; }
+        @media (max-width: 767px) {
+            .nbl-radar {
+                top: 10px !important;
+                left: 10px !important;
+                width: min(17.25rem, calc(100vw - 4.6rem)) !important;
+                z-index: 1200 !important;
+            }
+            .nbl-radar .nbl-glass {
+                border-radius: 1.15rem;
+            }
+            .nbl-radar .radar-head { padding: 10px 12px 8px !important; }
+            .nbl-radar .radar-avatar { width: 32px !important; height: 32px !important; }
+            .nbl-radar #radar-kicker { font-size: 9px !important; }
+            .nbl-radar #radar-greet { font-size: 13px !important; }
+            .nbl-radar #hot-board { max-height: 34vh !important; }
+            .nbl-radar .radar-cta { padding: 9px 12px !important; font-size: 11px !important; }
+        }
     </style>
 </head>
 <body class="bg-zinc-950 text-white">
@@ -390,10 +407,10 @@
                 <div id="map" class="w-full h-full bg-zinc-900"></div>
                 
                 <!-- Map Overlays -->
-                <div class="absolute top-3 left-3 z-[1000] w-[min(18.5rem,calc(100%-1.5rem))] pointer-events-auto">
+                <div class="nbl-radar absolute top-4 left-4 z-[1000] pointer-events-auto" style="width:18.5rem;max-width:calc(100% - 1.5rem);">
                     <div class="nbl-glass rounded-3xl overflow-hidden" style="box-shadow:0 0 28px rgba(57,255,20,.12);">
-                        <div class="px-4 pt-3 pb-2 flex items-center gap-3 border-b border-zinc-800">
-                            <div class="w-9 h-9 rounded-2xl bg-[#39FF14] text-zinc-950 flex items-center justify-center shrink-0 overflow-hidden" id="radar-avatar">
+                        <div class="radar-head px-4 pt-3 pb-2 flex items-center gap-3 border-b border-white/10">
+                            <div class="radar-avatar w-9 h-9 rounded-2xl bg-[#39FF14] text-zinc-950 flex items-center justify-center shrink-0 overflow-hidden" id="radar-avatar">
                                 <i class="fa-solid fa-basketball"></i>
                             </div>
                             <div class="min-w-0">
@@ -404,13 +421,13 @@
                             </div>
                         </div>
                         <div id="hot-board" class="max-h-[42vh] overflow-y-auto divide-y divide-zinc-800/80"></div>
-                        <button type="button" onclick="switchTab('compete')" class="w-full text-left px-4 py-3 text-[12px] font-semibold text-[#d7ffc8]" style="background:rgba(57,255,20,.12);border-top:1px solid rgba(180,255,170,.12)">
+                        <button type="button" onclick="switchTab('compete')" class="radar-cta w-full text-left px-4 py-3 text-[12px] font-semibold text-[#d7ffc8]" style="background:rgba(57,255,20,.12);border-top:1px solid rgba(180,255,170,.12)">
                             Jump a run before the board flips →
                         </button>
                     </div>
                 </div>
                 
-                <div class="absolute top-3 right-3 z-[1000]">
+                <div class="absolute top-4 right-4 z-[1000]">
                     <div onclick="showFilters()" class="nbl-glass cursor-pointer hover:border-[#9dff9a]/40 transition-colors px-4 py-2.5 rounded-3xl text-sm flex items-center gap-x-2">
                         <i class="fa-solid fa-filter text-[#FF10F0]"></i>
                         <span class="font-medium hidden sm:inline">Filters</span>
@@ -1412,7 +1429,130 @@
         }
 
 
+
+        let courtChatUnsub = null;
+        let courtChatTimer = null;
+        let activeChatCourt = null;
+        const CHAT_WINDOW_MS = 30 * 60 * 1000;
+
+        function courtSlug(court) {
+            return String(court && court.name || 'park').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80);
+        }
+        function inCourtState(court) {
+            var lat = lastKnownLat != null ? lastKnownLat : (currentUser && currentUser.lat);
+            var lng = lastKnownLng != null ? lastKnownLng : (currentUser && currentUser.lng);
+            if (lat == null || lng == null) return false;
+            if (court.state === 'FL') return lat >= 24.4 && lat <= 31.1 && lng >= -87.7 && lng <= -79.9;
+            if (court.state === 'TX') return lat >= 25.7 && lat <= 36.6 && lng >= -106.8 && lng <= -93.4;
+            var d = kmBetween(lat, lng, court.lat, court.lng);
+            return d != null && d <= 80;
+        }
+        function nearThisCity(court) {
+            var lat = lastKnownLat != null ? lastKnownLat : (currentUser && currentUser.lat);
+            var lng = lastKnownLng != null ? lastKnownLng : (currentUser && currentUser.lng);
+            var d = kmBetween(lat, lng, court.lat, court.lng);
+            return d != null && d <= 55;
+        }
+        function canPostCourtChat(court) {
+            if (!auth || !auth.currentUser || !currentUser) return false;
+            return inCourtState(court) || nearThisCity(court);
+        }
+        function stopCourtChat() {
+            if (courtChatUnsub) { try { courtChatUnsub(); } catch (e) {} courtChatUnsub = null; }
+            if (courtChatTimer) { clearInterval(courtChatTimer); courtChatTimer = null; }
+            activeChatCourt = null;
+        }
+        function renderCourtMessages(rows) {
+            var box = document.getElementById('court-chat-list');
+            if (!box) return;
+            var cut = Date.now() - CHAT_WINDOW_MS;
+            var live = (rows || []).filter(function (m) {
+                var ts = m.createdAt && m.createdAt.toMillis ? m.createdAt.toMillis() : (m.ts || 0);
+                return ts >= cut;
+            });
+            if (!live.length) {
+                box.innerHTML = '<div style="font-size:12px;color:#a1a1aa;padding:10px 2px">Quiet for the last 30 minutes. Local players can start the thread.</div>';
+                return;
+            }
+            box.innerHTML = live.map(function (m) {
+                var mine = auth && auth.currentUser && m.uid === auth.currentUser.uid;
+                return '<div style="padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)">' +
+                    '<div style="display:flex;justify-content:space-between;gap:8px"><span style="font-size:12px;font-weight:600;color:' + (mine ? '#b8ff6a' : '#e4e4e7') + '">' +
+                    String(m.name || 'Baller').replace(/</g,'') + '</span><span style="font-size:10px;color:#71717a">' +
+                    String(m.place || '').replace(/</g,'') + '</span></div>' +
+                    '<div style="font-size:13px;color:#d4d4d8;margin-top:2px;line-height:1.35">' + String(m.text || '').replace(/</g,'') + '</div></div>';
+            }).join('');
+            box.scrollTop = box.scrollHeight;
+        }
+        function tickChatWindow() {
+            var el = document.getElementById('court-chat-clock');
+            if (!el) return;
+            var left = 30 - (new Date().getMinutes() % 30);
+            var secs = 60 - new Date().getSeconds();
+            if (secs === 60) { secs = 0; }
+            el.textContent = 'Public thread · local posters only · refreshes in ' + left + 'm';
+        }
+        function listenCourtChat(court) {
+            stopCourtChat();
+            activeChatCourt = court;
+            tickChatWindow();
+            courtChatTimer = setInterval(function () {
+                tickChatWindow();
+                if (new Date().getMinutes() % 30 === 0 && new Date().getSeconds() < 3) {
+                    renderCourtMessages(window._courtChatCache || []);
+                }
+            }, 1000);
+            if (!firebaseReady || !db) {
+                renderCourtMessages([]);
+                return;
+            }
+            var ref = db.collection('courtChats').doc(courtSlug(court)).collection('messages').limit(80);
+            courtChatUnsub = ref.onSnapshot(function (snap) {
+                var rows = [];
+                snap.forEach(function (doc) { rows.push(Object.assign({ id: doc.id }, doc.data())); });
+                rows.sort(function (a, b) {
+                    var at = a.ts || (a.createdAt && a.createdAt.toMillis && a.createdAt.toMillis()) || 0;
+                    var bt = b.ts || (b.createdAt && b.createdAt.toMillis && b.createdAt.toMillis()) || 0;
+                    return at - bt;
+                });
+                window._courtChatCache = rows;
+                renderCourtMessages(rows);
+            }, function (err) {
+                console.error('[NBL] court chat', err);
+                var box = document.getElementById('court-chat-list');
+                if (box) box.innerHTML = '<div style="font-size:12px;color:#fca5a5;line-height:1.45">Chat is blocked by Firestore. In Firebase Console → Firestore → Rules, allow read/create on courtChats/{park}/messages/{id}. Then refresh.</div>';
+            });
+        }
+        async function sendCourtChat() {
+            var court = activeChatCourt;
+            var input = document.getElementById('court-chat-input');
+            if (!court || !input) return;
+            var text = (input.value || '').trim().slice(0, 280);
+            if (!text) return;
+            if (!auth || !auth.currentUser) { showAuthModal('login'); return; }
+            if (!canPostCourtChat(court)) {
+                showToast('Only players in ' + court.area + ', ' + court.state + ' can post. Everyone can read.');
+                return;
+            }
+            if (!db) return;
+            try {
+                await db.collection('courtChats').doc(courtSlug(court)).collection('messages').add({
+                    text: text,
+                    uid: auth.currentUser.uid,
+                    name: (currentUser && currentUser.name) || 'Baller',
+                    place: (court.area || '') + ', ' + court.state,
+                    ts: Date.now(),
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                input.value = '';
+            } catch (e) {
+                console.error(e);
+                showToast('Could not send. Check courtChats rules.');
+            }
+        }
+
         function closeParkCard() {
+            stopCourtChat();
             var el = document.getElementById('park-card-modal');
             if (el) el.remove();
         }
@@ -1515,9 +1655,38 @@
             actions.appendChild(run);
             body.appendChild(actions);
 
+            var chat = document.createElement('div');
+            chat.style.cssText = 'margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)';
+            var canPost = canPostCourtChat(court);
+            chat.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">' +
+                '<div style="font-size:10px;letter-spacing:.14em;color:#b8ff6a">LOCAL BOARD</div>' +
+                '<div id="court-chat-clock" style="font-size:10px;color:#71717a">Public thread · 30 min window</div></div>' +
+                '<div style="font-size:11px;color:#a1a1aa;margin:6px 0 8px">Everyone can read. Only signed-in players in ' + String(court.area).replace(/</g,'') + ', ' + court.state + ' can post.</div>' +
+                '<div id="court-chat-list" style="max-height:160px;overflow:auto;background:rgba(0,0,0,.25);border-radius:12px;padding:6px 10px"></div>';
+            var row = document.createElement('div');
+            row.style.cssText = 'display:flex;gap:8px;margin-top:8px';
+            var input = document.createElement('input');
+            input.id = 'court-chat-input';
+            input.maxLength = 280;
+            input.placeholder = canPost ? 'Drop a line for this park…' : 'Read-only here — post from this city/state';
+            input.disabled = !canPost;
+            input.style.cssText = 'flex:1;background:#09090b;border:1px solid #3f3f46;border-radius:12px;padding:10px 12px;color:#fff;font-size:13px';
+            input.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendCourtChat(); });
+            var send = document.createElement('button');
+            send.textContent = 'Send';
+            send.style.cssText = 'padding:10px 14px;border-radius:12px;border:0;background:' + (canPost ? '#39FF14' : '#3f3f46') + ';color:#09090b;font-weight:700;font-size:12px';
+            send.onclick = sendCourtChat;
+            row.appendChild(input);
+            row.appendChild(send);
+            chat.appendChild(row);
+            body.appendChild(chat);
+
+
+
             sheet.appendChild(body);
             overlay.appendChild(sheet);
             document.body.appendChild(overlay);
+            listenCourtChat(court);
         }
 
         function openParkCard(name) {
@@ -1625,7 +1794,8 @@
                 return { court: c, n: nearbyActiveAtCourt(c, 3.2) };
             }).sort(function (a, b) { return b.n - a.n; });
             var hot = ranked.filter(function (r) { return r.n > 0; });
-            var show = (hot.length ? hot : ranked).slice(0, 6);
+            var maxRows = (window.innerWidth < 768) ? 4 : 6;
+            var show = (hot.length ? hot : ranked).slice(0, maxRows);
             if (label) {
                 label.textContent = hot.length ? (hot.length + ' courts running') : 'Quiet board — first run wins the pin';
             }
@@ -1867,7 +2037,7 @@
             const avgA = (sumA / teamA.length).toFixed(1);
             const avgB = (sumB / teamB.length).toFixed(1);
 
-            const courtPool = (typeof visibleCourts === 'function' ? visibleCourts() : ALL_COURTS).map(c => c.name);
+            const pool = (typeof visibleCourts === 'function' ? visibleCourts() : ALL_COURTS).map(c => c.name);
             const suggestedCourt = pool[Math.floor(Math.random() * pool.length)] || "Lake Eola Park Courts";
 
             return {
