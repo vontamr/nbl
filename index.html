@@ -244,6 +244,19 @@
         .nbl-media-grid img, .nbl-media-grid video { width:100%; height:120px; object-fit:cover; border-radius:.85rem; background:#09090b; }
         .nbl-video-frame { position:relative; width:100%; padding-top:56.25%; border-radius:.85rem; overflow:hidden; background:#09090b; }
         .nbl-video-frame iframe, .nbl-video-frame video { position:absolute; inset:0; width:100%; height:100%; border:0; }
+        .nbl-glass {
+            background: linear-gradient(180deg, rgba(12,16,14,.78), rgba(6,8,7,.88));
+            border: 1px solid rgba(180, 255, 170, 0.16);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,.08),
+                0 12px 40px rgba(0,0,0,.35);
+            backdrop-filter: blur(18px) saturate(1.15);
+            -webkit-backdrop-filter: blur(18px) saturate(1.15);
+            color: #e8f6e4;
+        }
+        .nbl-glass .nbl-park-card-btn:hover { background: rgba(57,255,20,.06); }
+        #radar-weather { color: #9dff9a !important; letter-spacing: .01em; }
+        #radar-kicker { color: #b8ff6a !important; }
     </style>
 </head>
 <body class="bg-zinc-950 text-white">
@@ -378,7 +391,7 @@
                 
                 <!-- Map Overlays -->
                 <div class="absolute top-3 left-3 z-[1000] w-[min(18.5rem,calc(100%-1.5rem))] pointer-events-auto">
-                    <div class="bg-zinc-950/90 backdrop-blur-xl border border-[#39FF14]/25 rounded-3xl overflow-hidden" style="box-shadow:0 0 28px rgba(57,255,20,.12);">
+                    <div class="nbl-glass rounded-3xl overflow-hidden" style="box-shadow:0 0 28px rgba(57,255,20,.12);">
                         <div class="px-4 pt-3 pb-2 flex items-center gap-3 border-b border-zinc-800">
                             <div class="w-9 h-9 rounded-2xl bg-[#39FF14] text-zinc-950 flex items-center justify-center shrink-0 overflow-hidden" id="radar-avatar">
                                 <i class="fa-solid fa-basketball"></i>
@@ -387,17 +400,18 @@
                                 <div class="text-[10px] tracking-[0.18em] text-[#39FF14] font-semibold" id="radar-kicker">LIVE COURT RADAR</div>
                                 <div class="text-sm font-semibold truncate" id="radar-greet">Lace up. The board is live.</div>
                                 <div class="text-[11px] text-zinc-500 truncate" id="courts-hot-count">Scanning rims…</div>
+                                <div class="text-[11px] text-[#39FF14] truncate mt-0.5" id="radar-weather">Checking conditions…</div>
                             </div>
                         </div>
                         <div id="hot-board" class="max-h-[42vh] overflow-y-auto divide-y divide-zinc-800/80"></div>
-                        <button type="button" onclick="switchTab('compete')" class="w-full text-left px-4 py-3 text-[12px] font-semibold bg-gradient-to-r from-[#39FF14] to-[#00c853] text-zinc-950">
+                        <button type="button" onclick="switchTab('compete')" class="w-full text-left px-4 py-3 text-[12px] font-semibold text-[#d7ffc8]" style="background:rgba(57,255,20,.12);border-top:1px solid rgba(180,255,170,.12)">
                             Jump a run before the board flips →
                         </button>
                     </div>
                 </div>
                 
                 <div class="absolute top-3 right-3 z-[1000]">
-                    <div onclick="showFilters()" class="cursor-pointer bg-zinc-900/90 backdrop-blur-xl border border-zinc-700 hover:border-[#FF10F0]/50 transition-colors px-4 py-2.5 rounded-3xl text-sm flex items-center gap-x-2">
+                    <div onclick="showFilters()" class="nbl-glass cursor-pointer hover:border-[#9dff9a]/40 transition-colors px-4 py-2.5 rounded-3xl text-sm flex items-center gap-x-2">
                         <i class="fa-solid fa-filter text-[#FF10F0]"></i>
                         <span class="font-medium hidden sm:inline">Filters</span>
                     </div>
@@ -1549,8 +1563,61 @@
             }
         }
 
+
+        var _weatherAt = 0;
+        var _weatherKey = '';
+        function weatherLabel(code) {
+            if (code == null) return 'Outside';
+            if (code === 0) return 'Clear skies';
+            if (code <= 3) return 'Partly cloudy';
+            if (code <= 48) return 'Foggy / haze';
+            if (code <= 57) return 'Drizzle';
+            if (code <= 67) return 'Rain — indoor if you can';
+            if (code <= 77) return 'Snow / winter ball';
+            if (code <= 82) return 'Showers';
+            if (code <= 99) return 'Storms nearby';
+            return 'Check the sky';
+        }
+        function hoopTip(tempF, code) {
+            if (code >= 61 && code <= 99) return 'Wet slab. Mind your footing.';
+            if (tempF >= 95) return 'Heat check. Water first.';
+            if (tempF >= 85) return 'Prime outdoor hoop weather.';
+            if (tempF >= 68) return 'Crisp. Good for long runs.';
+            if (tempF >= 50) return 'Cool air. Warm up extra.';
+            return 'Cold rims. Shorts still legal.';
+        }
+        function refreshRadarWeather() {
+            var el = document.getElementById('radar-weather');
+            if (!el) return;
+            var lat = lastKnownLat || (currentUser && currentUser.lat) || (map && map.getCenter && map.getCenter().lat);
+            var lng = lastKnownLng || (currentUser && currentUser.lng) || (map && map.getCenter && map.getCenter().lng);
+            if (lat == null || lng == null) {
+                el.textContent = 'Share location for live court weather';
+                return;
+            }
+            var key = Number(lat).toFixed(2) + ',' + Number(lng).toFixed(2);
+            var now = Date.now();
+            if (key === _weatherKey && now - _weatherAt < 10 * 60 * 1000 && el.dataset.ready === '1') return;
+            _weatherKey = key;
+            _weatherAt = now;
+            var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lng +
+                '&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m&temperature_unit=fahrenheit&wind_speed_unit=mph';
+            fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+                var cur = data && data.current;
+                if (!cur) { el.textContent = 'Weather offline'; return; }
+                var temp = Math.round(cur.temperature_2m);
+                var wind = Math.round(cur.wind_speed_10m || 0);
+                var hum = Math.round(cur.relative_humidity_2m || 0);
+                el.dataset.ready = '1';
+                el.textContent = temp + '°F · ' + weatherLabel(cur.weather_code) + ' · ' + wind + ' mph · ' + hoopTip(temp, cur.weather_code);
+            }).catch(function () {
+                el.textContent = 'Weather offline';
+            });
+        }
+
         function renderHotBoard() {
             refreshRadarGreeting();
+            refreshRadarWeather();
             var box = document.getElementById('hot-board');
             var label = document.getElementById('courts-hot-count');
             if (!box) return;
@@ -1769,7 +1836,7 @@
 
         // Generate balanced teams with "AI"
         function generateBalancedTeams(availablePlayers = null) {
-            let pool = availablePlayers || players.filter(p => p.online || p.availability === "Now");
+            let playerPool = availablePlayers || players.filter(p => p.online || p.availability === "Now");
             pool = [...pool];
 
             // Need at least 6 active users for a real match (3v3); prefer 10 for 5v5
@@ -2840,6 +2907,7 @@
             }
             lastKnownLat = lat;
             lastKnownLng = lng;
+            try { refreshRadarWeather(); } catch (e) {}
         }
 
         function useMyLocation(opts) {
