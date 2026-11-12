@@ -1,0 +1,318 @@
+/* ═══════════════════════════════════════════════════════════
+   NBL map bots — markers + popups on the Leaflet court map
+   Distinct from player pins (green circles) and court pins
+   (magenta squares). Every bot is branded NBL + "BOT".
+   ═══════════════════════════════════════════════════════════ */
+
+.nblmb-pin {
+    position: relative;
+    width: 46px;
+    height: 52px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+    filter: drop-shadow(0 0 8px rgba(57, 255, 20, 0.55));
+}
+.nblmb-shield {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px 10px 12px 12px;
+    background:
+        linear-gradient(180deg, #1a1a1d 0%, #09090b 100%);
+    border: 2px solid #39FF14;
+    color: #39FF14;
+    font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+        0 0 0 3px rgba(9, 9, 11, 0.85),
+        0 0 14px rgba(57, 255, 20, 0.45);
+    position: relative;
+}
+.nblmb-shield::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -6px;
+    width: 10px;
+    height: 10px;
+    background: #09090b;
+    border-right: 2px solid #39FF14;
+    border-bottom: 2px solid #39FF14;
+    transform: translateX(-50%) rotate(45deg);
+    border-radius: 0 0 2px 0;
+}
+.nblmb-pin[data-bot="connector"] .nblmb-shield {
+    border-color: #FF10F0;
+    color: #FF10F0;
+    box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.85), 0 0 14px rgba(255, 16, 240, 0.5);
+}
+.nblmb-pin[data-bot="connector"] .nblmb-shield::after { border-color: #FF10F0; }
+.nblmb-pin[data-bot="connector"] { filter: drop-shadow(0 0 8px rgba(255, 16, 240, 0.5)); }
+.nblmb-pin[data-bot="scout"] .nblmb-shield {
+    border-color: #38bdf8;
+    color: #7dd3fc;
+    box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.85), 0 0 14px rgba(56, 189, 248, 0.5);
+}
+.nblmb-pin[data-bot="scout"] .nblmb-shield::after { border-color: #38bdf8; }
+.nblmb-pin[data-bot="scout"] { filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.45)); }
+.nblmb-pin[data-bot="host"] .nblmb-shield {
+    border-color: #fbbf24;
+    color: #fde68a;
+    box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.85), 0 0 14px rgba(251, 191, 36, 0.5);
+}
+.nblmb-pin[data-bot="host"] .nblmb-shield::after { border-color: #fbbf24; }
+.nblmb-pin[data-bot="host"] { filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.45)); }
+
+.nblmb-tag {
+    margin-top: 7px;
+    background: #39FF14;
+    color: #09090b;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    line-height: 1;
+    padding: 2px 5px;
+    border-radius: 999px;
+    font-family: 'Inter', system-ui, sans-serif;
+}
+.nblmb-pin[data-bot="connector"] .nblmb-tag { background: #FF10F0; color: #fff; }
+.nblmb-pin[data-bot="scout"] .nblmb-tag { background: #38bdf8; color: #09090b; }
+.nblmb-pin[data-bot="host"] .nblmb-tag { background: #fbbf24; color: #09090b; }
+
+.nblmb-pin.nblmb-pulse .nblmb-shield {
+    animation: nblmb-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes nblmb-glow {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
+}
+
+/* Legend chip on the map */
+.nblmb-legend {
+    background: rgba(24, 24, 27, 0.92);
+    border: 1px solid rgba(57, 255, 20, 0.35);
+    color: #e4e4e7;
+    border-radius: 14px;
+    padding: 6px 10px 6px 8px;
+    font-size: 11px;
+    line-height: 1.25;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+    margin-bottom: 8px;
+    margin-left: 8px;
+}
+.nblmb-legend-ico {
+    width: 22px;
+    height: 22px;
+    border: 1.5px solid #39FF14;
+    border-radius: 6px;
+    color: #39FF14;
+    font-size: 7px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.nblmb-legend b {
+    color: #39FF14;
+    font-weight: 700;
+}
+.nblmb-legend span {
+    display: block;
+    color: #a1a1aa;
+    font-size: 10px;
+}
+
+/* Overlay card (above map chrome, below site modals / chat) */
+.nblmb-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 1200;
+    background: rgba(0, 0, 0, 0.28);
+    pointer-events: auto;
+}
+.nblmb-overlay.nblmb-open { display: block; }
+
+.nblmb-sheet {
+    position: absolute;
+    right: 12px;
+    top: 56px;
+    width: min(332px, calc(100% - 24px));
+    max-height: calc(100% - 148px); /* clear the floating chat launcher */
+    overflow: auto;
+    background: #18181b;
+    color: #fafafa;
+    border-radius: 18px;
+    border: 1px solid rgba(57, 255, 20, 0.28);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45), 0 0 24px rgba(57, 255, 20, 0.12);
+    -webkit-overflow-scrolling: touch;
+}
+
+.nblmb-close {
+    position: sticky;
+    top: 0;
+    float: right;
+    z-index: 2;
+    margin: 6px 6px 0 0;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #a1a1aa;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+}
+.nblmb-close:hover { color: #fff; background: rgba(255,255,255,.06); }
+
+.nblmb-card { padding: 14px 14px 16px; clear: both; }
+.nblmb-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding-right: 22px;
+}
+.nblmb-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 2px solid #39FF14;
+    background: #09090b;
+    color: #39FF14;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.nblmb-avatar[data-bot="connector"] { border-color: #FF10F0; color: #FF10F0; }
+.nblmb-avatar[data-bot="scout"] { border-color: #38bdf8; color: #7dd3fc; }
+.nblmb-avatar[data-bot="host"] { border-color: #fbbf24; color: #fde68a; }
+
+.nblmb-name {
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+.nblmb-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: #39FF14;
+    text-transform: uppercase;
+}
+.nblmb-badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 99px;
+    background: #39FF14;
+    box-shadow: 0 0 6px #39FF14;
+}
+.nblmb-place {
+    font-size: 11px;
+    color: #a1a1aa;
+    margin-top: 8px;
+}
+.nblmb-body {
+    font-size: 13px;
+    color: #e4e4e7;
+    line-height: 1.45;
+    margin: 10px 0 0;
+}
+.nblmb-body p { margin: 0 0 8px; }
+.nblmb-body p:last-child { margin-bottom: 0; }
+
+.nblmb-wx {
+    margin-top: 10px;
+    font-size: 11px;
+    color: #bbf7d0;
+    background: rgba(57, 255, 20, 0.08);
+    border: 1px solid rgba(57, 255, 20, 0.18);
+    border-radius: 10px;
+    padding: 7px 9px;
+    display: none;
+}
+.nblmb-wx.nblmb-show { display: block; }
+
+.nblmb-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+}
+.nblmb-btn {
+    width: 100%;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 9px 10px;
+    border-radius: 12px;
+    border: 0;
+    cursor: pointer;
+    background: #39FF14;
+    color: #09090b;
+}
+.nblmb-btn:hover { filter: brightness(1.05); }
+.nblmb-btn.nblmb-ghost {
+    background: transparent;
+    color: #fff;
+    border: 1px solid #52525b;
+}
+.nblmb-btn.nblmb-pink {
+    background: #FF10F0;
+    color: #fff;
+}
+.nblmb-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+.nblmb-foot {
+    margin-top: 10px;
+    font-size: 10px;
+    color: #71717a;
+    line-height: 1.4;
+}
+
+@media (max-width: 767px) {
+    .nblmb-legend { margin-bottom: 52px; }
+    .nblmb-overlay {
+        position: fixed; /* viewport-relative so it isn't trapped in the tall map shell */
+        inset: 0;
+        z-index: 1960; /* above the helper-chat launcher (1900) */
+        background: rgba(0, 0, 0, 0.4);
+    }
+    .nblmb-sheet {
+        top: auto;
+        right: 10px;
+        left: 10px;
+        bottom: 12px;
+        width: auto;
+        max-height: min(70dvh, calc(100dvh - 24px));
+        border-radius: 18px;
+    }
+    .nblmb-btn { padding: 10px 10px; font-size: 13px; }
+    .nblmb-body { font-size: 13px; }
+}

@@ -23,3 +23,20 @@ Until this is done the bots run in "Playbook mode" (scripted answers) — nothin
 
 Options in `window.NBL_BOTS_CONFIG`: `ai` (false = scripted only), `model` (default `gemini-3.8-flash`), `appCheckProvider` (`'v3'` or `'enterprise'`).
 Chat history lives in memory only (per bot, per page load); nothing is written to Firestore.
+
+# NBL Map Bots (Spark · Connector · Scout · Host)
+
+Files: `mapbots.js`, `mapbots.css` (one extra `<link>` and `<script>` in `index.html`).
+
+These are official **NBL Bots** that appear as clearly labeled markers on the court map. They are not player accounts, they never show a human name without an "NBL Bot" badge, and they are never added to a run roster.
+
+- **Spark** — hypes the visitor to start a run at the nearby park.
+- **Connector** — points people at Live Matching to land a game with real players.
+- **Scout** — adds live open-meteo weather for that court when the popup opens.
+- **Host** — points people at the park card / local board so they can invite real players.
+
+Placement: if the site already has the visitor's location, the four bots sit just off the nearest parks (spread at least ~1.2 km apart). Otherwise they start at Lake Eola and Cypress Grove (Orlando) plus Hermann Park (Houston) and Reverchon Park (Dallas).
+
+Popup buttons call existing site functions only: `switchTab('compete')` (and pre-select the park for "Start a run here"), `fillNearestCourts`, `openParkCard`, `showAuthModal`, and `NBLBots.open('matchmaker')`. Nothing is written to Firestore.
+
+Player or run counts appear only when the page already loaded that data. If the board is empty or Firestore reads failed, the copy stays generic ("No run listed yet", "The board looks quiet") — never a made-up number or a fake name.
