@@ -15,6 +15,10 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- NBL helper bots (Coach / Matchmaker / Ref) -->
+    <link rel="stylesheet" href="bots.css">
+    <!-- NBL map bots (official helpers on the court map) -->
+    <link rel="stylesheet" href="mapbots.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
         
@@ -3288,5 +3292,9 @@
             }, 300);
         };
     </script>
+    <!-- NBL helper bots (Coach / Matchmaker / Ref) — self-contained, see bots.js -->
+    <script src="bots.js"></script>
+    <!-- NBL map bots — self-contained, see mapbots.js. Official NBL helpers, not players. -->
+    <script src="mapbots.js"></script>
 </body>
 </html>
