@@ -75,14 +75,20 @@
         }
         @media (max-width: 767px) {
             .nbl-map-shell {
-                height: calc(100dvh - 148px);
-                min-height: 520px;
-                border-radius: 1.1rem;
+                height: calc(100dvh - 132px);
+                min-height: 480px;
+                border-radius: 1rem;
             }
-            #section-map .text-4xl {
-                font-size: 1.6rem;
-                line-height: 1.15;
-            }
+            #section-map .text-4xl { font-size: 1.5rem; line-height: 1.1; }
+            #section-profiles .text-4xl, #section-rules .text-4xl, #section-compete .text-4xl { font-size: 1.65rem; }
+            .nbl-radar { top: 8px !important; left: 8px !important; width: min(16.5rem, calc(100vw - 4rem)) !important; }
+            .nbl-radar .radar-head { padding: 8px 10px 6px !important; }
+            .nbl-radar #hot-board { max-height: 28vh !important; }
+            .radar-cta { font-size: 12px !important; padding: 10px 12px !important; }
+            nav .px-8 { padding-left: 1rem; padding-right: 1rem; }
+            .section { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+            button, .nav-tab { min-height: 44px; }
+            .player-card { border-radius: 1.25rem; }
         }
 
         .leaflet-popup-content-wrapper {
@@ -381,10 +387,10 @@
             <div class="flex items-end justify-between mb-3 px-2">
                 <div>
                     <div class="flex items-center gap-x-3">
-                        <h1 class="text-4xl font-bold tracking-tighter">Automated Pickup</h1>
+                        <h1 class="text-4xl font-bold tracking-tighter">Pickup Map</h1>
                         <div class="px-4 py-1 bg-[#39FF14]/10 text-[#39FF14] text-xs font-mono tracking-widest rounded-2xl flex items-center gap-x-2 border border-[#39FF14]/25" style="box-shadow: 0 0 12px rgba(57,255,20,0.15);">
                             <div class="w-2 h-2 bg-[#39FF14] rounded-full animate-pulse" style="box-shadow: 0 0 6px #39FF14;"></div>
-                            <span id="active-players-count">0 PLAYERS ACTIVE</span>
+                            <span id="active-players-count">0 live</span>
                         </div>
                     </div>
                     <p class="text-zinc-400 mt-1">Nationwide ballers • Florida &amp; Texas parks pinned</p>
@@ -402,6 +408,10 @@
                 </div>
             </div>
 
+            
+            <div class="md:hidden mb-2 px-2 text-xs text-zinc-400">
+                Green pins = players. Pink = parks. Tap for details.
+            </div>
             <!-- MAP -->
             <div class="relative rounded-3xl overflow-hidden border border-zinc-800 map-container shadow-2xl nbl-map-shell">
                 <div id="map" class="w-full h-full bg-zinc-900"></div>
@@ -414,15 +424,15 @@
                                 <i class="fa-solid fa-basketball"></i>
                             </div>
                             <div class="min-w-0">
-                                <div class="text-[10px] tracking-[0.18em] text-[#39FF14] font-semibold" id="radar-kicker">LIVE COURT RADAR</div>
-                                <div class="text-sm font-semibold truncate" id="radar-greet">Lace up. The board is live.</div>
+                                <div class="text-[10px] tracking-[0.18em] text-[#39FF14] font-semibold" id="radar-kicker">COURTS</div>
+                                <div class="text-sm font-semibold truncate" id="radar-greet">Live courts nearby</div>
                                 <div class="text-[11px] text-zinc-500 truncate" id="courts-hot-count">Scanning rims…</div>
                                 <div class="text-[11px] text-[#39FF14] truncate mt-0.5" id="radar-weather">Checking conditions…</div>
                             </div>
                         </div>
                         <div id="hot-board" class="max-h-[42vh] overflow-y-auto divide-y divide-zinc-800/80"></div>
                         <button type="button" onclick="switchTab('compete')" class="radar-cta w-full text-left px-4 py-3 text-[12px] font-semibold text-[#d7ffc8]" style="background:rgba(57,255,20,.12);border-top:1px solid rgba(180,255,170,.12)">
-                            Jump a run before the board flips →
+                            Start or join a run →
                         </button>
                     </div>
                 </div>
@@ -439,15 +449,15 @@
                     <button onclick="switchTab('compete'); showToast('Pick a park and create or join a live run.');"
                             class="group neon-glow-btn w-full md:w-auto mx-auto flex items-center justify-center gap-x-2 bg-gradient-to-r from-[#39FF14] to-[#00c853] hover:from-[#FF10F0] hover:to-[#c026d3] active:scale-[0.985] transition-all text-zinc-950 px-4 py-2 md:px-5 md:py-2.5 rounded-2xl font-semibold text-xs md:text-sm">
                         <i class="fa-solid fa-robot text-sm md:text-base group-active:rotate-12 transition-transform"></i>
-                        <span>AUTO-MATCH</span>
+                        <span>Match teams</span>
                         <span class="hidden sm:inline px-2 py-0.5 bg-black/20 text-[10px] rounded-xl font-mono tracking-wider">RANDOM + FAIR</span>
                     </button>
                 </div>
             </div>
 
             <div class="flex justify-between items-center mt-3 px-2 text-xs text-zinc-500">
-                <div>Tap any player pin to view profile • Use AUTO-MATCH for instant professional 5v5</div>
-                <div class="hidden md:block">Real-time availability • Skill + position balanced teams</div>
+                <div>Tap pin → profile. AUTO-MATCH builds fair teams.</div>
+                <div class="hidden md:block">Live players • Balanced by skill & position</div>
             </div>
         </div>
     </div>
@@ -456,12 +466,12 @@
     <div id="section-profiles" class="section max-w-screen-2xl mx-auto px-3 md:px-8 pt-5 md:pt-8 pb-16 overflow-x-hidden">
         <div class="flex flex-col gap-4 mb-6">
             <div class="min-w-0">
-                <h2 class="text-3xl md:text-4xl font-bold tracking-tighter">Player Profiles</h2>
+                <h2 class="text-3xl md:text-4xl font-bold tracking-tighter">Players</h2>
                 <p class="text-zinc-400 text-sm md:text-base pr-1">Signed-up ballers from every state — parks listed in Florida &amp; Texas</p>
             </div>
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 min-w-0">
                 <div class="relative flex-1 min-w-0">
-                    <input type="text" id="profile-search" placeholder="Search name or position..." 
+                    <input type="text" id="profile-search" placeholder="Name or position..." 
                            onkeyup="filterProfiles()"
                            class="bg-zinc-900 border border-zinc-700 focus:border-[#39FF14] transition-colors pl-10 pr-4 py-3 rounded-3xl text-sm w-full focus:outline-none">
                     <i class="fa-solid fa-search absolute left-4 top-3.5 text-zinc-500"></i>
@@ -469,7 +479,7 @@
                 <button onclick="showCreateProfileModal()" 
                         class="flex items-center justify-center gap-x-2 px-5 py-3 bg-gradient-to-r from-[#39FF14] to-[#00c853] text-zinc-950 rounded-3xl text-sm font-semibold shrink-0">
                     <i class="fa-solid fa-plus"></i>
-                    <span>Join as Player</span>
+                    <span>Edit card</span>
                 </button>
             </div>
         </div>
@@ -482,8 +492,8 @@
     <!-- RULES SECTION -->
     <div id="section-rules" class="section max-w-screen-2xl mx-auto px-8 pt-8 pb-16">
         <div class="max-w-4xl">
-            <h2 class="text-4xl font-bold tracking-tighter mb-2">NBL Pickup Standards</h2>
-            <p class="text-xl text-zinc-400 mb-10">Professional rules for park, street, and recreational basketball. Automated. Fair. Legit.</p>
+            <h2 class="text-4xl font-bold tracking-tighter mb-2">Rules</h2>
+            <p class="text-base text-zinc-400 mb-8">Simple rules. Fair teams. Show up or cancel early.</p>
 
             <div class="grid md:grid-cols-2 gap-6">
                 <!-- Pickup Rules -->
@@ -492,14 +502,14 @@
                         <div class="w-10 h-10 bg-[#39FF14]/10 text-[#39FF14] rounded-2xl flex items-center justify-center" style="box-shadow: 0 0 12px rgba(57,255,20,0.25);">
                             <i class="fa-solid fa-basketball-ball text-xl"></i>
                         </div>
-                        <h3 class="font-semibold text-2xl">Standard Pickup Rules</h3>
+                        <h3 class="font-semibold text-xl">Pickup basics</h3>
                     </div>
                     <ul class="space-y-4 text-sm">
-                        <li class="flex gap-x-3"><span class="font-mono text-[#39FF14] w-5">01</span> <span>Games are 5v5 full court (or 3v3 half court by agreement)</span></li>
-                        <li class="flex gap-x-3"><span class="font-mono text-[#39FF14] w-5">02</span> <span>Win by 2 or first to 21 (your call at tip-off)</span></li>
-                        <li class="flex gap-x-3"><span class="font-mono text-[#39FF14] w-5">03</span> <span>Check ball at the top of the key. No cherry picking.</span></li>
-                        <li class="flex gap-x-3"><span class="font-mono text-[#39FF14] w-5">04</span> <span>3-second violation strictly enforced on offense</span></li>
-                        <li class="flex gap-x-3"><span class="font-mono text-[#39FF14] w-5">05</span> <span>Call your own fouls. Respect the game.</span></li>
+                        <li class="flex gap-x-3"><span class="font-mono text-[#39FF14] w-5">01</span> <span>5v5 full or 3v3 half. Agree at tip-off.</span></li>
+                        <li class="flex gap-x-3"><span class="font-mono text-[#39FF14] w-5">02</span> <span>Win by 2, or first to 21. Call it early.</span></li>
+                        <li class="flex gap-x-3"><span class="font-mono text-[#39FF14] w-5">03</span> <span>Check at the top. No cherry picking.</span></li>
+                        <li class="flex gap-x-3"><span class="font-mono text-[#39FF14] w-5">04</span> <span>3 seconds in the paint on offense.</span></li>
+                        <li class="flex gap-x-3"><span class="font-mono text-[#39FF14] w-5">05</span> <span>Call your own fouls. Keep it clean.</span></li>
                     </ul>
                 </div>
 
@@ -509,14 +519,14 @@
                         <div class="w-10 h-10 bg-[#FF10F0]/10 text-[#FF10F0] rounded-2xl flex items-center justify-center" style="box-shadow: 0 0 12px rgba(255,16,240,0.25);">
                             <i class="fa-solid fa-robot text-xl"></i>
                         </div>
-                        <h3 class="font-semibold text-2xl">Automated Matching Protocol</h3>
+                        <h3 class="font-semibold text-xl">How matching works</h3>
                     </div>
                     <ul class="space-y-4 text-sm">
                         <li class="flex gap-x-3"><span class="font-mono text-[#FF10F0] w-5">01</span> <span>Teams are auto-balanced by skill level (avg difference &lt; 0.8)</span></li>
-                        <li class="flex gap-x-3"><span class="font-mono text-[#FF10F0] w-5">02</span> <span>Position diversity prioritized (no more than 2 of same position per team when possible)</span></li>
-                        <li class="flex gap-x-3"><span class="font-mono text-[#FF10F0] w-5">03</span> <span>Proximity + availability taken into account for court suggestion</span></li>
-                        <li class="flex gap-x-3"><span class="font-mono text-[#FF10F0] w-5">04</span> <span>Skill range capped: highest and lowest on same team differ by max 3 points</span></li>
-                        <li class="flex gap-x-3"><span class="font-mono text-[#FF10F0] w-5">05</span> <span>Re-roll anytime. AI learns from accepted matches over time.</span></li>
+                        <li class="flex gap-x-3"><span class="font-mono text-[#FF10F0] w-5">02</span> <span>Mix positions. Avoid stacking the same role.</span></li>
+                        <li class="flex gap-x-3"><span class="font-mono text-[#FF10F0] w-5">03</span> <span>Suggests nearby courts with open players.</span></li>
+                        <li class="flex gap-x-3"><span class="font-mono text-[#FF10F0] w-5">04</span> <span>Skill spread on one team max ~3 points.</span></li>
+                        <li class="flex gap-x-3"><span class="font-mono text-[#FF10F0] w-5">05</span> <span>Re-roll anytime. Better matches over time.</span></li>
                     </ul>
                 </div>
             </div>
@@ -524,15 +534,15 @@
             <div class="mt-8 bg-zinc-900/70 border border-zinc-800 rounded-3xl p-8 text-sm">
                 <div class="font-semibold mb-3 flex items-center gap-x-2 text-[#39FF14]" style="text-shadow: 0 0 8px rgba(57,255,20,0.4);">
                     <i class="fa-solid fa-shield-halved"></i> 
-                    <span>HOOPCRUISE CODE OF CONDUCT</span>
+                    <span>CODE</span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-y-2 text-zinc-300">
-                    <div>• Respect every baller on and off the court</div>
-                    <div>• No trash talk that crosses into disrespect</div>
-                    <div>• Show up or cancel early — your rep matters</div>
-                    <div>• Winners buy the next round of Gatorade</div>
-                    <div>• Celebrate buckets, not egos</div>
-                    <div>• New players get grace. We all started somewhere.</div>
+                    <div>• Respect everyone</div>
+                    <div>• Keep talk fun, not mean</div>
+                    <div>• Show up or cancel early</div>
+                    <div>• Winners get the next round</div>
+                    <div>• Celebrate the bucket</div>
+                    <div>• Be cool with new players</div>
                 </div>
             </div>
         </div>
@@ -542,8 +552,8 @@
     <div id="section-compete" class="section max-w-screen-2xl mx-auto px-4 md:px-8 pt-6 pb-16">
         <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
             <div>
-                <h2 class="text-4xl font-bold tracking-tighter">Live Matching</h2>
-                <p class="text-zinc-400">Real signed-in players • Real parks • Auto teams when the lobby fills</p>
+                <h2 class="text-4xl font-bold tracking-tighter">Runs</h2>
+                <p class="text-zinc-400 text-sm">Create or join a run at a park. Teams lock when full.</p>
             </div>
             <div class="text-xs px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-3xl text-center">
                 <div class="font-mono text-[#FF10F0]" id="games-matched-count">0</div>
@@ -552,7 +562,7 @@
         </div>
 
         <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 md:p-6 mb-6">
-            <div class="font-semibold mb-3">Start or join a run</div>
+            <div class="font-semibold mb-3">Start a run</div>
             <div class="grid md:grid-cols-12 gap-3 items-end">
                 <div class="md:col-span-5">
                     <label class="text-[10px] text-zinc-500 tracking-widest block mb-1">PARK</label>
@@ -574,7 +584,7 @@
                     </select>
                 </div>
                 <div class="md:col-span-2">
-                    <button onclick="createLiveRun()" class="w-full py-3 rounded-2xl text-sm font-semibold bg-gradient-to-r from-[#39FF14] to-[#00c853] text-zinc-950">Create run</button>
+                    <button onclick="createLiveRun()" class="w-full py-3 rounded-2xl text-sm font-semibold bg-gradient-to-r from-[#39FF14] to-[#00c853] text-zinc-950">Create</button>
                 </div>
             </div>
             <div class="flex flex-wrap gap-2 mt-3">
@@ -591,11 +601,11 @@
             </div>
             <div class="lg:col-span-5 space-y-6">
                 <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
-                    <h3 class="font-semibold text-lg mb-4 flex items-center gap-x-2"><i class="fa-solid fa-trophy text-[#39FF14]"></i> Live board</h3>
+                    <h3 class="font-semibold text-lg mb-4 flex items-center gap-x-2"><i class="fa-solid fa-trophy text-[#39FF14]"></i> Top players</h3>
                     <div class="space-y-2" id="leaderboard"></div>
                 </div>
                 <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
-                    <h3 class="font-semibold text-lg mb-4 flex items-center gap-x-2"><i class="fa-solid fa-history text-[#FF10F0]"></i> Locked matches</h3>
+                    <h3 class="font-semibold text-lg mb-4 flex items-center gap-x-2"><i class="fa-solid fa-history text-[#FF10F0]"></i> Recent locks</h3>
                     <div class="space-y-3 text-sm" id="recent-matches"></div>
                 </div>
             </div>
@@ -1197,7 +1207,7 @@
         function updateActiveCountUI() {
             const n = players.filter(p => p.online).length;
             const activeLabel = document.getElementById('active-players-count');
-            if (activeLabel) activeLabel.textContent = n + (n === 1 ? ' PLAYER ACTIVE' : ' PLAYERS ACTIVE');
+            if (activeLabel) activeLabel.textContent = n + (n === 1 ? ' live' : ' live');
             const courtsLabel = document.getElementById('courts-hot-count');
             if (courtsLabel) {
                 if (typeof ALL_COURTS !== 'undefined' && ALL_COURTS.length) {
@@ -1721,8 +1731,8 @@
             var av = document.getElementById('radar-avatar');
             var mine = !!(currentUser && (sessionEmail || (auth && auth.currentUser)));
             var name = mine ? firstNameOf(currentUser) : '';
-            if (kicker) kicker.textContent = mine ? 'YOUR BOARD' : 'LIVE COURT RADAR';
-            if (greet) greet.textContent = mine ? radarPhrase(name) : 'Lace up. The board is live.';
+            if (kicker) kicker.textContent = mine ? 'YOUR BOARD' : 'COURTS';
+            if (greet) greet.textContent = mine ? radarPhrase(name) : 'Live courts nearby';
             if (av) {
                 if (mine && currentUser && currentUser.avatar) {
                     av.innerHTML = '<img src="' + String(currentUser.avatar).replace(/"/g,'') + '" alt="" style="width:100%;height:100%;object-fit:cover">';
